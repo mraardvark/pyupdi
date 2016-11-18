@@ -10,6 +10,7 @@ pyupdi is a Python utility for programming AVR devices with UPDI interface
   Be sure to connect a common ground, and use a TTL serial adapter running at
    the same voltage as the AVR device.
 
+<pre>
                         Vcc                     Vcc
                         +-+                     +-+
                          |                       |
@@ -26,3 +27,4 @@ pyupdi is a Python utility for programming AVR devices with UPDI interface
                          +-+                   +-+
                          GND                   GND
 
+</pre>
