@@ -65,7 +65,7 @@ if __name__ == "__main__":
     device = Device(sys.argv[2])
     filename = sys.argv[3]
 
-    nvm = UpdiNvmProgrammer(comport=comport, baud=100000, device=device)
+    nvm = UpdiNvmProgrammer(comport=comport, baud=115200, device=device)
 
     # Retrieve data to write
     data, start_address = nvm.load_ihex(filename)

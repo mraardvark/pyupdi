@@ -10,7 +10,7 @@ class UpdiPhysical(object):
         PDI physical driver using a given COM port at a given baud
     """
 
-    def __init__(self, port, baud=100000):
+    def __init__(self, port, baud=115200):
         """
             Initialise the COM port
         """
@@ -30,7 +30,7 @@ class UpdiPhysical(object):
         """
 
         self.logger.info("Opening {} at {} baud".format(port, baud))
-        self.ser = serial.Serial(port, baud, parity=serial.PARITY_EVEN, timeout=1)
+        self.ser = serial.Serial(port, baud, parity=serial.PARITY_EVEN, timeout=1, stopbits=serial.STOPBITS_TWO)
 
     def send_double_break(self):
         """
@@ -44,7 +44,7 @@ class UpdiPhysical(object):
 
         # Re-init at a lower baud
         self.ser.close()
-        temporary_serial = serial.Serial(self.port, 1000)
+        temporary_serial = serial.Serial(self.port, 1200)
 
         # Send a break
         temporary_serial.write([constants.UPDI_BREAK])
@@ -54,7 +54,7 @@ class UpdiPhysical(object):
 
         # Send another
         temporary_serial.write([constants.UPDI_BREAK])
-        time.sleep(0.001)
+        time.sleep(0.05)
 
         # Re-init at the real baud
         temporary_serial.close()
