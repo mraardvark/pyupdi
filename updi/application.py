@@ -122,6 +122,8 @@ class UpdiApplication(object):
             Disables UPDI which releases any keys enabled
         """
         self.logger.info("Leaving NVM programming mode")
+        self.reset(True)
+        self.reset(False)
         self.datalink.stcs(constants.UPDI_CS_CTRLB, (1 << constants.UPDI_CTRLB_UPDIDIS_BIT) | (1 << constants.UPDI_CTRLB_CCDETDIS_BIT))
 
     def reset(self, apply_reset):
