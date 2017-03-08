@@ -91,7 +91,7 @@ if __name__ == "__main__":
 
     # Read out again
     readback = nvm.read_flash(device.flash_start, len(data))
-    for i in range(len(data)):
+    for i, _ in enumerate(data):
         if data[i] != readback[i]:
             print("Verify error at location 0x{0:04X}: expected 0x{1:02X} read 0x{2:02X} ".format(i, data[i],
                                                                                                   readback[i]))
