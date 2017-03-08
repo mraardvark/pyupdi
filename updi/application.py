@@ -22,19 +22,19 @@ class UpdiApplication(object):
             Reads out device information from various sources
         """
         sib = self.datalink.read_sib()
-        print("SIB read out as: {}".format(sib))
-        print("Family ID = {}".format(sib[0:7]))
-        print("NVM revision = {}".format(sib[10]))
-        print("OCD revision = {}".format(sib[13]))
-        print("PDI OSC = {}MHz".format(sib[15]))
+        self.logger.info("SIB read out as: {}".format(sib))
+        self.logger.info("Family ID = {}".format(sib[0:7]))
+        self.logger.info("NVM revision = {}".format(sib[10]))
+        self.logger.info("OCD revision = {}".format(sib[13]))
+        self.logger.info("PDI OSC = {}MHz".format(sib[15]))
 
-        print("PDI revision = 0x{:X}".format(self.datalink.ldcs(constants.UPDI_CS_STATUSA) >> 4))
+        self.logger.info("PDI revision = 0x{:X}".format(self.datalink.ldcs(constants.UPDI_CS_STATUSA) >> 4))
         if self.in_prog_mode():
             if self.device is not None:
                 devid = self.read_data(self.device.sigrow_address, 3)
                 devrev = self.read_data(self.device.syscfg_address + 1, 1)
-                print("Device ID = {0:X}{1:X}{2:X} rev {3:}".format(devid[0], devid[1], devid[2],
-                                                                    chr(ord('A') + devrev[0])))
+                self.logger.info("Device ID = {0:X}{1:X}{2:X} rev {3:}".format(devid[0], devid[1], devid[2],
+                                                                               chr(ord('A') + devrev[0])))
 
     def in_prog_mode(self):
         """
