@@ -1,9 +1,9 @@
 
+import logging
+
 from device.device import Device
 from updi.nvm import UpdiNvmProgrammer
 
-import logging
-logging.basicConfig(level=logging.WARNING)
 """
 Copyright (c) 2016 Atmel Corporation, a wholly owned subsidiary of Microchip Technology Inc.
 
@@ -59,6 +59,9 @@ if __name__ == "__main__":
         print("Python UPDI programmer demo")
         print("Usage: pyupdi.py comport device filename")
         sys.exit(1)
+
+    logging.basicConfig(format="%(levelname)s:%(name)s %(message)s",
+                        level=logging.WARNING)
 
     # Retrieve parameters
     comport = sys.argv[1]
