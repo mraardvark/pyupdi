@@ -74,8 +74,8 @@ class UpdiApplication(object):
             raise Exception("Key not accepted")
 
         # Toggle reset
-        self.reset(True)
-        self.reset(False)
+        self.reset(apply_reset=True)
+        self.reset(apply_reset=False)
 
         # And wait for unlock
         if not self.wait_unlocked(10):
@@ -103,8 +103,8 @@ class UpdiApplication(object):
             raise Exception("Key not accepted")
 
         # Toggle reset
-        self.reset(True)
-        self.reset(False)
+        self.reset(apply_reset=True)
+        self.reset(apply_reset=False)
 
         # And wait for unlock
         if not self.wait_unlocked(10):
@@ -122,8 +122,8 @@ class UpdiApplication(object):
             Disables UPDI which releases any keys enabled
         """
         self.logger.info("Leaving NVM programming mode")
-        self.reset(True)
-        self.reset(False)
+        self.reset(apply_reset=True)
+        self.reset(apply_reset=False)
         self.datalink.stcs(constants.UPDI_CS_CTRLB, (1 << constants.UPDI_CTRLB_UPDIDIS_BIT) | (1 << constants.UPDI_CTRLB_CCDETDIS_BIT))
 
     def reset(self, apply_reset):
@@ -281,6 +281,7 @@ class UpdiApplication(object):
             Reads a number of words of data from UPDI
         """
         self.logger.info("Reading {0:d} words from 0x{1:04X}".format(words, address))
+
         # Range check
         if words > (constants.UPDI_MAX_REPEAT_SIZE >> 1) + 1:
             raise Exception("Cant read that many words in one go")
