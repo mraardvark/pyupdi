@@ -4,6 +4,7 @@ import time
 
 import updi.constants as constants
 from updi.link import UpdiDatalink
+from updi.timeout import Timeout
 
 class UpdiApplication(object):
     """
@@ -48,16 +49,17 @@ class UpdiApplication(object):
             Waits for the device to be unlocked.
             All devices boot up as locked until proven otherwise
         """
-        while True:
+
+        timeout = Timeout(timeout_ms)
+
+        while not timeout.expired():
             if not self.datalink.ldcs(constants.UPDI_ASI_SYS_STATUS) & (1 << constants.UPDI_ASI_SYS_STATUS_LOCKSTATUS):
                 return True
 
-            if timeout_ms == 0:
-                self.logger.info("Timeout waiting for device to unlock")
-                return False
+            time.sleep(1 / 10000)
 
-            time.sleep((timeout_ms / 1000.0) / 10)
-            timeout_ms -= 1
+        self.logger.info("Timeout waiting for device to unlock")
+        return False
 
     def unlock(self):
         """
@@ -141,9 +143,11 @@ class UpdiApplication(object):
         """
             Waits for the NVM controller to be ready
         """
-        # TODO - add timeout
+
+        timeout = Timeout(10000) # TODO 10 sec timeout, just to be sure
+
         self.logger.info("Wait flash ready")
-        while True:
+        while not timeout.expired():
             status = self.datalink.ld(self.device.nvmctrl_address + constants.UPDI_NVMCTRL_STATUS)
             if status & (1 << constants.UPDI_NVM_STATUS_WRITE_ERROR):
                 self.logger.info("NVM error")
@@ -151,6 +155,9 @@ class UpdiApplication(object):
 
             if not status & ((1 <<constants.UPDI_NVM_STATUS_EEPROM_BUSY) | (1 << constants.UPDI_NVM_STATUS_FLASH_BUSY)):
                 return True
+
+        self.logger.error("Wait flash ready timed out")
+        return False
 
     def execute_nvm_command(self, command):
         """
