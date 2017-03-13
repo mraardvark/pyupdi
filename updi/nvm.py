@@ -1,7 +1,7 @@
-
 import logging
 
 from updi.application import UpdiApplication
+import updi.constants as constants
 
 class UpdiNvmProgrammer(object):
     """
@@ -102,6 +102,47 @@ class UpdiNvmProgrammer(object):
             self.application.write_nvm(address, page)
             address += len(page)
 
+    def read_fuse(self, fusenum):
+        """
+            Reads one fuse value
+        """
+        # Must be in prog mode
+        if not self.progmode:
+            raise Exception("Enter progmode first!")
+
+        address = self.device.fuses_address + fusenum
+        data = self.application.datalink.ld(address)
+        return data
+
+    def write_fuse(self, fusenum, value):
+        """
+            Writes one fuse value
+        """
+        # Must be in prog mode
+        if not self.progmode:
+            raise Exception("Enter progmode first!")
+
+        if not self.application.wait_flash_ready():
+            raise Exception("Flash not ready for fuse setting")
+
+        fuse_data = [value]
+        fuse_address = self.device.fuses_address + fusenum
+
+        address = self.device.nvmctrl_address + constants.UPDI_NVMCTRL_ADDRL
+        data = [fuse_address & 0xff]
+        self.application.write_data(address, data)
+
+        address = self.device.nvmctrl_address + constants.UPDI_NVMCTRL_ADDRH
+        data = [fuse_address >> 8]
+        self.application.write_data(address, data)
+
+        address = self.device.nvmctrl_address + constants.UPDI_NVMCTRL_DATAL
+        self.application.write_data(address, fuse_data)
+
+        address = self.device.nvmctrl_address + constants.UPDI_NVMCTRL_CTRLA
+        data = [constants.UPDI_NVMCTRL_CTRLA_WRITE_FUSE]
+        self.application.write_data(address, data)
+
     def pad_data(self, data, blocksize, character=0xFF):
         """
             Pads data so that there are full pages
@@ -148,4 +189,3 @@ class UpdiNvmProgrammer(object):
             start_address += self.device.flash_start
 
         return data, start_address
-
