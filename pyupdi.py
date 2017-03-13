@@ -1,9 +1,9 @@
 
+import logging
+
 from device.device import Device
 from updi.nvm import UpdiNvmProgrammer
 
-import logging
-logging.basicConfig(level=logging.WARNING)
 """
 Copyright (c) 2016 Atmel Corporation, a wholly owned subsidiary of Microchip Technology Inc.
 
@@ -60,6 +60,9 @@ if __name__ == "__main__":
         print("Usage: pyupdi.py comport device filename")
         sys.exit(1)
 
+    logging.basicConfig(format="%(levelname)s:%(name)s %(message)s",
+                        level=logging.WARNING)
+
     # Retrieve parameters
     comport = sys.argv[1]
     device = Device(sys.argv[2])
@@ -88,7 +91,7 @@ if __name__ == "__main__":
 
     # Read out again
     readback = nvm.read_flash(device.flash_start, len(data))
-    for i in range(len(data)):
+    for i, _ in enumerate(data):
         if data[i] != readback[i]:
             print("Verify error at location 0x{0:04X}: expected 0x{1:02X} read 0x{2:02X} ".format(i, data[i],
                                                                                                   readback[i]))

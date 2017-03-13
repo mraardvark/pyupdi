@@ -1,7 +1,7 @@
 
 import logging
 
-from updi.application import UpdiApplication 
+from updi.application import UpdiApplication
 
 class UpdiNvmProgrammer(object):
     """
@@ -48,6 +48,7 @@ class UpdiNvmProgrammer(object):
 
         # Unlock
         self.application.unlock()
+
         # Unlock after using the NVM key results in prog mode.
         self.progmode = True
 
@@ -57,6 +58,7 @@ class UpdiNvmProgrammer(object):
         """
         if not self.progmode:
             raise Exception("Enter progmode first!")
+
         return self.application.chip_erase()
 
     def read_flash(self, address, size):
@@ -66,13 +68,15 @@ class UpdiNvmProgrammer(object):
         # Must be in prog mode here
         if not self.progmode:
             raise Exception("Enter progmode first!")
+
         # Find the number of pages
         pages = size / self.device.flash_pagesize
         if size % self.device.flash_pagesize:
             raise Exception("Only full page aligned flash supported.")
+
         data = []
         # Read out page-wise for convenience
-        for i in range(pages):
+        for _ in range(pages):
             self.logger.info("Reading page at 0x{0:04X}".format(address))
             data += (self.application.read_data_words(address, self.device.flash_pagesize >> 1))
             address += self.device.flash_pagesize
@@ -85,10 +89,13 @@ class UpdiNvmProgrammer(object):
         # Must be in prog mode
         if not self.progmode:
             raise Exception("Enter progmode first!")
+
         # Pad to full page
         data = self.pad_data(data, self.device.flash_pagesize)
+
         # Divide up into pages
         pages = self.page_data(data, self.device.flash_pagesize)
+
         # Program each page
         for page in pages:
             self.logger.info("Writing page at 0x{0:04X}".format(address))
@@ -101,7 +108,7 @@ class UpdiNvmProgrammer(object):
         """
         self.logger.info("Padding to blocksize {0:d} with 0x{1:X}".format(blocksize, character))
         if len(data) % blocksize > 0:
-            for i in range(len(data) % blocksize, blocksize):
+            for _ in range(len(data) % blocksize, blocksize):
                 data.append(0)
         return data
 
@@ -112,6 +119,7 @@ class UpdiNvmProgrammer(object):
         self.logger.info("Paging into {} byte blocks".format(size))
         total_length = len(data)
         result = []
+
         while len(result) < total_length / size:
             result.append(data[:size].tolist())
             data = data[size:]

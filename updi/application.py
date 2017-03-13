@@ -4,6 +4,7 @@ import time
 
 import updi.constants as constants
 from updi.link import UpdiDatalink
+from updi.timeout import Timeout
 
 class UpdiApplication(object):
     """
@@ -21,19 +22,19 @@ class UpdiApplication(object):
             Reads out device information from various sources
         """
         sib = self.datalink.read_sib()
-        print("SIB read out as: {}".format(sib))
-        print("Family ID = {}".format(sib[0:7]))
-        print("NVM revision = {}".format(sib[10]))
-        print("OCD revision = {}".format(sib[13]))
-        print("PDI OSC = {}MHz".format(sib[15]))
+        self.logger.info("SIB read out as: {}".format(sib))
+        self.logger.info("Family ID = {}".format(sib[0:7]))
+        self.logger.info("NVM revision = {}".format(sib[10]))
+        self.logger.info("OCD revision = {}".format(sib[13]))
+        self.logger.info("PDI OSC = {}MHz".format(sib[15]))
 
-        print("PDI revision = 0x{:X}".format(self.datalink.ldcs(constants.UPDI_CS_STATUSA) >> 4))
+        self.logger.info("PDI revision = 0x{:X}".format(self.datalink.ldcs(constants.UPDI_CS_STATUSA) >> 4))
         if self.in_prog_mode():
             if self.device is not None:
                 devid = self.read_data(self.device.sigrow_address, 3)
                 devrev = self.read_data(self.device.syscfg_address + 1, 1)
-                print("Device ID = {0:X}{1:X}{2:X} rev {3:}".format(devid[0], devid[1], devid[2],
-                                                                    chr(ord('A') + devrev[0])))
+                self.logger.info("Device ID = {0:X}{1:X}{2:X} rev {3:}".format(devid[0], devid[1], devid[2],
+                                                                               chr(ord('A') + devrev[0])))
 
     def in_prog_mode(self):
         """
@@ -48,16 +49,15 @@ class UpdiApplication(object):
             Waits for the device to be unlocked.
             All devices boot up as locked until proven otherwise
         """
-        while True:
+
+        timeout = Timeout(timeout_ms)
+
+        while not timeout.expired():
             if not self.datalink.ldcs(constants.UPDI_ASI_SYS_STATUS) & (1 << constants.UPDI_ASI_SYS_STATUS_LOCKSTATUS):
                 return True
 
-            if timeout_ms == 0:
-                self.logger.info("Timeout waiting for device to unlock")
-                return False
-
-            time.sleep((timeout_ms / 1000.0) / 10)
-            timeout_ms -= 1
+        self.logger.info("Timeout waiting for device to unlock")
+        return False
 
     def unlock(self):
         """
@@ -74,11 +74,11 @@ class UpdiApplication(object):
             raise Exception("Key not accepted")
 
         # Toggle reset
-        self.reset(True)
-        self.reset(False)
+        self.reset(apply_reset=True)
+        self.reset(apply_reset=False)
 
         # And wait for unlock
-        if not self.wait_unlocked(10):
+        if not self.wait_unlocked(100):
             raise Exception("Failed to chip erase using key")
 
     def enter_progmode(self):
@@ -103,11 +103,11 @@ class UpdiApplication(object):
             raise Exception("Key not accepted")
 
         # Toggle reset
-        self.reset(True)
-        self.reset(False)
+        self.reset(apply_reset=True)
+        self.reset(apply_reset=False)
 
         # And wait for unlock
-        if not self.wait_unlocked(10):
+        if not self.wait_unlocked(100):
             raise Exception("Failed to enter NVM programming mode: device is locked")
 
         # Check for NVMPROG flag
@@ -122,8 +122,8 @@ class UpdiApplication(object):
             Disables UPDI which releases any keys enabled
         """
         self.logger.info("Leaving NVM programming mode")
-        self.reset(True)
-        self.reset(False)
+        self.reset(apply_reset=True)
+        self.reset(apply_reset=False)
         self.datalink.stcs(constants.UPDI_CS_CTRLB, (1 << constants.UPDI_CTRLB_UPDIDIS_BIT) | (1 << constants.UPDI_CTRLB_CCDETDIS_BIT))
 
     def reset(self, apply_reset):
@@ -141,9 +141,11 @@ class UpdiApplication(object):
         """
             Waits for the NVM controller to be ready
         """
-        # TODO - add timeout
+
+        timeout = Timeout(10000) # TODO 10 sec timeout, just to be sure
+
         self.logger.info("Wait flash ready")
-        while True:
+        while not timeout.expired():
             status = self.datalink.ld(self.device.nvmctrl_address + constants.UPDI_NVMCTRL_STATUS)
             if status & (1 << constants.UPDI_NVM_STATUS_WRITE_ERROR):
                 self.logger.info("NVM error")
@@ -151,6 +153,9 @@ class UpdiApplication(object):
 
             if not status & ((1 <<constants.UPDI_NVM_STATUS_EEPROM_BUSY) | (1 << constants.UPDI_NVM_STATUS_FLASH_BUSY)):
                 return True
+
+        self.logger.error("Wait flash ready timed out")
+        return False
 
     def execute_nvm_command(self, command):
         """
@@ -281,6 +286,7 @@ class UpdiApplication(object):
             Reads a number of words of data from UPDI
         """
         self.logger.info("Reading {0:d} words from 0x{1:04X}".format(words, address))
+
         # Range check
         if words > (constants.UPDI_MAX_REPEAT_SIZE >> 1) + 1:
             raise Exception("Cant read that many words in one go")
