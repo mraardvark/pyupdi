@@ -2,18 +2,20 @@
 import logging
 
 from updi.application import UpdiApplication
+from updi.progress import NullProgress
 
 class UpdiNvmProgrammer(object):
     """
         NVM programming utility for UPDI
     """
 
-    def __init__(self, comport, baud, device):
+    def __init__(self, comport, baud, device, progress=NullProgress()):
 
         self.application = UpdiApplication(comport, baud, device)
         self.device = device
         self.progmode = False
         self.logger = logging.getLogger("nvm")
+        self.progress = progress
 
     def get_device_info(self):
         """
@@ -74,10 +76,14 @@ class UpdiNvmProgrammer(object):
         if size % self.device.flash_pagesize:
             raise Exception("Only full page aligned flash supported.")
 
+        self.progress.start("Reading", steps=pages)
+
         data = []
         # Read out page-wise for convenience
         for _ in range(pages):
             self.logger.info("Reading page at 0x{0:04X}".format(address))
+            self.progress.step()
+
             data += (self.application.read_data_words(address, self.device.flash_pagesize >> 1))
             address += self.device.flash_pagesize
         return data
@@ -96,9 +102,13 @@ class UpdiNvmProgrammer(object):
         # Divide up into pages
         pages = self.page_data(data, self.device.flash_pagesize)
 
+        self.progress.start("Writing", steps=pages)
+
         # Program each page
         for page in pages:
             self.logger.info("Writing page at 0x{0:04X}".format(address))
+            self.progress.step()
+
             self.application.write_nvm(address, page)
             address += len(page)
 

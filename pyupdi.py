@@ -3,6 +3,7 @@ import logging
 
 from device.device import Device
 from updi.nvm import UpdiNvmProgrammer
+from updi.progress import ConsoleProgress
 
 """
 Copyright (c) 2016 Atmel Corporation, a wholly owned subsidiary of Microchip Technology Inc.
@@ -68,7 +69,7 @@ if __name__ == "__main__":
     device = Device(sys.argv[2])
     filename = sys.argv[3]
 
-    nvm = UpdiNvmProgrammer(comport=comport, baud=115200, device=device)
+    nvm = UpdiNvmProgrammer(comport=comport, baud=115200, device=device, progress=ConsoleProgress())
 
     # Retrieve data to write
     data, start_address = nvm.load_ihex(filename)
