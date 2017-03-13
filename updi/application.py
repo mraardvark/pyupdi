@@ -56,8 +56,6 @@ class UpdiApplication(object):
             if not self.datalink.ldcs(constants.UPDI_ASI_SYS_STATUS) & (1 << constants.UPDI_ASI_SYS_STATUS_LOCKSTATUS):
                 return True
 
-            time.sleep(1 / 10000)
-
         self.logger.info("Timeout waiting for device to unlock")
         return False
 
@@ -80,7 +78,7 @@ class UpdiApplication(object):
         self.reset(apply_reset=False)
 
         # And wait for unlock
-        if not self.wait_unlocked(10):
+        if not self.wait_unlocked(100):
             raise Exception("Failed to chip erase using key")
 
     def enter_progmode(self):
@@ -109,7 +107,7 @@ class UpdiApplication(object):
         self.reset(apply_reset=False)
 
         # And wait for unlock
-        if not self.wait_unlocked(10):
+        if not self.wait_unlocked(100):
             raise Exception("Failed to enter NVM programming mode: device is locked")
 
         # Check for NVMPROG flag

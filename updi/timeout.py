@@ -18,4 +18,4 @@ class Timeout(object):
         '''
             Check if the timeout has expired
         '''
-        return time.time() - self.start_time > self.timeout_ms / 1000
+        return time.time() - self.start_time > self.timeout_ms / 1000.0
