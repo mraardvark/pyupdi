@@ -1,4 +1,3 @@
-
 import logging
 import time
 import serial
@@ -31,6 +30,14 @@ class UpdiPhysical(object):
 
         self.logger.info("Opening {} at {} baud".format(port, baud))
         self.ser = serial.Serial(port, baud, parity=serial.PARITY_EVEN, timeout=1, stopbits=serial.STOPBITS_TWO)
+
+    def _loginfo(self, msg, data):
+        if data and isinstance(data[0], str):
+            i_data = [ord(x) for x in data]
+        else:
+            i_data = data
+        data_str = "[" + ", ".join([hex(x) for x in i_data]) + "]"
+        self.logger.info(msg + ' : ' + data_str)
 
     def send_double_break(self):
         """
@@ -65,7 +72,7 @@ class UpdiPhysical(object):
             Sends a char array to UPDI with inter-byte delay
             Note that the byte will echo back
         """
-        self.logger.info("send: {}".format(command))
+        self._loginfo("send", command)
 
         for character in command:
 
@@ -98,7 +105,7 @@ class UpdiPhysical(object):
             else:
                 timeout -= 1
 
-        self.logger.info("receive: {}".format(response))
+        self._loginfo("receive", response)
         return response
 
     def sib(self):
