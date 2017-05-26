@@ -30,6 +30,8 @@ class UpdiPhysical(object):
 
         self.logger.info("Opening {} at {} baud".format(port, baud))
         self.ser = serial.Serial(port, baud, parity=serial.PARITY_EVEN, timeout=1, stopbits=serial.STOPBITS_TWO)
+        # send an initial break as handshake
+        self.send([constants.UPDI_BREAK])
 
     def _loginfo(self, msg, data):
         if data and isinstance(data[0], str):
@@ -50,18 +52,16 @@ class UpdiPhysical(object):
         self.logger.info("Sending double break")
 
         # Re-init at a lower baud
+        # At 300 bauds, the break character will pull the line low for 30ms
+        # Which is slightly above the recommended 24.6ms
         self.ser.close()
-        temporary_serial = serial.Serial(self.port, 1200)
+        temporary_serial = serial.Serial(self.port, 300, stopbits=serial.STOPBITS_ONE)
 
-        # Send a break
-        temporary_serial.write([constants.UPDI_BREAK])
+        # Send two break characters, with 1 stop bit in between
+        temporary_serial.write([constants.UPDI_BREAK, constants.UPDI_BREAK])
 
-        # Wait
-        time.sleep(0.05)
-
-        # Send another
-        temporary_serial.write([constants.UPDI_BREAK])
-        time.sleep(0.05)
+        # Wait for the double break end
+        temporary_serial.read(2)
 
         # Re-init at the real baud
         temporary_serial.close()
