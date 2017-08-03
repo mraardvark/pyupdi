@@ -59,7 +59,7 @@ class UpdiDatalink(object):
         """
             Store a value to Control/Status space
         """
-        self.logger.info("STCS to 0x{0:04X}".format(address))
+        self.logger.info("STCS to 0x{0:02X}".format(address))
         self.updi_phy.send([constants.UPDI_PHY_SYNC, constants.UPDI_STCS | (address & 0x0F), value])
 
     def ld(self, address):
@@ -77,7 +77,7 @@ class UpdiDatalink(object):
         """
         self.logger.info("LD from 0x{0:04X}".format(address))
         self.updi_phy.send(
-            [constants.UPDI_PHY_SYNC, constants.UPDI_LDS | constants.constants.UPDI_ADDRESS_16 | constants.UPDI_DATA_16, address & 0xFF, (address >> 8) & 0xFF])
+            [constants.UPDI_PHY_SYNC, constants.UPDI_LDS | constants.UPDI_ADDRESS_16 | constants.UPDI_DATA_16, address & 0xFF, (address >> 8) & 0xFF])
         return self.updi_phy.receive(2)
 
     def st(self, address, value):
