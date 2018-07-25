@@ -1,4 +1,4 @@
-class Device(object): # pylint: disable=too-few-public-methods
+class Device(object):  # pylint: disable=too-few-public-methods
     """
     Contains device specific information needed for programming
     """
