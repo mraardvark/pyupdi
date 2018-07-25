@@ -4,6 +4,7 @@ import serial
 
 import updi.constants as constants
 
+
 class UpdiPhysical(object):
     """
         PDI physical driver using a given COM port at a given baud
@@ -22,16 +23,15 @@ class UpdiPhysical(object):
         self.baud = baud
         self.ser = None
         self.initialise_serial(self.port, self.baud)
+        # send an initial break as handshake
+        self.send([constants.UPDI_BREAK])
 
     def initialise_serial(self, port, baud):
         """
             Standard COM port initialisation
         """
-
         self.logger.info("Opening {} at {} baud".format(port, baud))
         self.ser = serial.Serial(port, baud, parity=serial.PARITY_EVEN, timeout=1, stopbits=serial.STOPBITS_TWO)
-        # send an initial break as handshake
-        self.send([constants.UPDI_BREAK])
 
     def _loginfo(self, msg, data):
         if data and isinstance(data[0], str):
@@ -99,7 +99,7 @@ class UpdiPhysical(object):
             character = self.ser.read()
 
             # Anything in?
-            if character != "":
+            if len(character) != 0:
                 response.append(ord(character))
                 size -= 1
             else:
