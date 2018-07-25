@@ -1,10 +1,10 @@
 
 import logging
-import time
 
 import updi.constants as constants
 from updi.link import UpdiDatalink
 from updi.timeout import Timeout
+
 
 class UpdiApplication(object):
     """
@@ -124,7 +124,8 @@ class UpdiApplication(object):
         self.logger.info("Leaving NVM programming mode")
         self.reset(apply_reset=True)
         self.reset(apply_reset=False)
-        self.datalink.stcs(constants.UPDI_CS_CTRLB, (1 << constants.UPDI_CTRLB_UPDIDIS_BIT) | (1 << constants.UPDI_CTRLB_CCDETDIS_BIT))
+        self.datalink.stcs(constants.UPDI_CS_CTRLB,
+                           (1 << constants.UPDI_CTRLB_UPDIDIS_BIT) | (1 << constants.UPDI_CTRLB_CCDETDIS_BIT))
 
     def reset(self, apply_reset):
         """
@@ -142,7 +143,7 @@ class UpdiApplication(object):
             Waits for the NVM controller to be ready
         """
 
-        timeout = Timeout(10000) # TODO 10 sec timeout, just to be sure
+        timeout = Timeout(10000)  # TODO 10 sec timeout, just to be sure
 
         self.logger.info("Wait flash ready")
         while not timeout.expired():
@@ -151,7 +152,8 @@ class UpdiApplication(object):
                 self.logger.info("NVM error")
                 return False
 
-            if not status & ((1 <<constants.UPDI_NVM_STATUS_EEPROM_BUSY) | (1 << constants.UPDI_NVM_STATUS_FLASH_BUSY)):
+            if not status & ((1 << constants.UPDI_NVM_STATUS_EEPROM_BUSY) |
+                             (1 << constants.UPDI_NVM_STATUS_FLASH_BUSY)):
                 return True
 
         self.logger.error("Wait flash ready timed out")

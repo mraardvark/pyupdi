@@ -51,6 +51,7 @@ pyupdi is a Python utility for programming AVR devices with UPDI interface
 
 """
 
+
 def _main():
     parser = argparse.ArgumentParser(description="Simple command line"
                                      " interface for UPDI programming")
@@ -97,6 +98,7 @@ def _main():
 
     nvm.leave_progmode()
 
+
 def _process(nvm, args):
     if args.erase:
         try:
@@ -118,10 +120,11 @@ def _process(nvm, args):
         return _flash_file(nvm, args.flash)
     return True
 
+
 def _flash_file(nvm, filename):
     data, start_address = nvm.load_ihex(filename)
 
-    fail=False
+    fail = False
 
     nvm.chip_erase()
     nvm.write_flash(start_address, data)
@@ -130,8 +133,9 @@ def _flash_file(nvm, filename):
     readback = nvm.read_flash(nvm.device.flash_start, len(data))
     for i, _ in enumerate(data):
         if data[i] != readback[i]:
-            print("Verify error at location 0x{0:04X}: expected 0x{1:02X} read 0x{2:02X} ".format(i, data[i], readback[i]))
-            fail=True
+            print("Verify error at location 0x{0:04X}: expected 0x{1:02X} read 0x{2:02X} ".format(i, data[i],
+                                                                                                  readback[i]))
+            fail = True
 
     if not fail:
         print("Programming successful")
@@ -145,6 +149,7 @@ def _set_fuse(nvm, fusenum, value):
     if not ret:
         print("Verify error for fuse {0}, expected 0x{1:02X} read 0x{2:02X}".format(fusenum, value, actual_val))
     return ret
+
 
 if __name__ == "__main__":
     _main()
