@@ -17,7 +17,7 @@ class Device(object):  # pylint: disable=too-few-public-methods
             self.sigrow_address = 0x1100
             self.fuses_address = 0x1280
             self.userrow_address = 0x1300
-        if device_name in DEVICES_8K:
+        elif device_name in DEVICES_8K:
             self.flash_start = 0x8000
             self.flash_size = 8 * 1024
             self.flash_pagesize = 64
