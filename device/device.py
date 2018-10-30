@@ -1,6 +1,6 @@
-DEVICES_8K = set(["tiny814", "tiny817"])
-DEVICES_4K = set(["tiny402", "tiny404", "tiny406", "tiny412", "tiny414", "tiny417"])
-DEVICES_2K = set(["tiny202", "tiny204", "tiny214"])
+DEVICES_8K = set(["tiny814", "tiny816", "tiny817"])
+DEVICES_4K = set(["tiny402", "tiny404", "tiny406", "tiny412", "tiny414", "tiny416", "tiny417"])
+DEVICES_2K = set(["tiny202", "tiny204", "tiny212", "tiny214"])
 
 class Device(object):  # pylint: disable=too-few-public-methods
     """
