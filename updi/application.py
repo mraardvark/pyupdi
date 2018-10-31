@@ -1,4 +1,6 @@
-
+"""
+    Application layer for UPDI stack
+"""
 import logging
 
 import updi.constants as constants
@@ -143,7 +145,7 @@ class UpdiApplication(object):
             Waits for the NVM controller to be ready
         """
 
-        timeout = Timeout(10000)  # TODO 10 sec timeout, just to be sure
+        timeout = Timeout(10000)  # 10 sec timeout, just to be sure
 
         self.logger.info("Wait flash ready")
         while not timeout.expired():
@@ -302,4 +304,3 @@ class UpdiApplication(object):
 
         # Do the read
         return self.datalink.ld_ptr_inc16(words)
-

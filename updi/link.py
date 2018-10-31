@@ -1,4 +1,6 @@
-
+"""
+    Link layer in UPDI protocol stack
+"""
 import logging
 
 from updi.physical import UpdiPhysical
@@ -213,4 +215,3 @@ class UpdiDatalink(object):
             raise Exception("Invalid KEY length!")
         self.updi_phy.send([constants.UPDI_PHY_SYNC, constants.UPDI_KEY | constants.UPDI_KEY_KEY | size])
         self.updi_phy.send(list(reversed(list(key))))
-

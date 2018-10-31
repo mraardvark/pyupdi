@@ -1,3 +1,6 @@
+"""
+    Serial driver for UPDI stack
+"""
 import logging
 import time
 import serial
@@ -99,7 +102,7 @@ class UpdiPhysical(object):
             character = self.ser.read()
 
             # Anything in?
-            if len(character) != 0:
+            if character:
                 response.append(ord(character))
                 size -= 1
             else:

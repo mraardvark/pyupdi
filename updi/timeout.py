@@ -1,4 +1,6 @@
-
+"""
+    Simple timer helper for UPDI stack
+"""
 import time
 
 

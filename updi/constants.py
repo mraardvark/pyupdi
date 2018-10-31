@@ -1,4 +1,6 @@
-
+"""
+    UPDI protocol constants
+"""
 # UPDI commands and control definitions
 UPDI_BREAK = 0x00
 

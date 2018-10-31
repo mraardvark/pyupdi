@@ -1,3 +1,6 @@
+"""
+    Definition of device parameters for UPDI programming
+"""
 # megaAVR
 DEVICES_MEGA_48K = set(["mega4808", "mega4809"])
 DEVICES_MEGA_32K = set(["mega3208", "mega3209"])
@@ -5,14 +8,16 @@ DEVICES_MEGA_32K = set(["mega3208", "mega3209"])
 # tinyAVR
 DEVICES_TINY_32K = set(["tiny3216", "tiny3217"])
 DEVICES_TINY_16K = set(["tiny1614", "tiny1616", "tiny1617"])
-DEVICES_TINY_8K  = set(["tiny814", "tiny816", "tiny817"])
-DEVICES_TINY_4K  = set(["tiny402", "tiny404", "tiny406", "tiny412", "tiny414", "tiny416", "tiny417"])
+DEVICES_TINY_8K = set(["tiny814", "tiny816", "tiny817"])
+DEVICES_TINY_4K = set(["tiny402", "tiny404", "tiny406", "tiny412", "tiny414", "tiny416", "tiny417"])
 DEVICES_TINY_2K = set(["tiny202", "tiny204", "tiny212", "tiny214"])
+
 
 class Device(object):  # pylint: disable=too-few-public-methods
     """
-    Contains device specific information needed for programming
+        Contains device specific information needed for programming
     """
+
     def __init__(self, device_name):
         if device_name in DEVICES_MEGA_48K:
             self.flash_start = 0x4000
@@ -82,6 +87,10 @@ class Device(object):  # pylint: disable=too-few-public-methods
 
     @staticmethod
     def get_supported_devices():
+        """
+            Query for device support list
+            :return: list of supported devices
+        """
         return sorted(
             DEVICES_TINY_2K |
             DEVICES_TINY_4K |
@@ -90,4 +99,3 @@ class Device(object):  # pylint: disable=too-few-public-methods
             DEVICES_TINY_32K |
             DEVICES_MEGA_32K |
             DEVICES_MEGA_48K)
-    
