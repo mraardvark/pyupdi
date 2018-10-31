@@ -1,5 +1,5 @@
 # pyupdi
-Python UPDI driver for programming "new" tinyAVR devices
+Python UPDI driver for programming "new" tinyAVR and megaAVR devices
 
 pyupdi is a Python utility for programming AVR devices with UPDI interface
   using a standard TTL serial port.
