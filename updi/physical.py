@@ -58,7 +58,7 @@ class UpdiPhysical(object):
         # At 300 bauds, the break character will pull the line low for 30ms
         # Which is slightly above the recommended 24.6ms
         self.ser.close()
-        temporary_serial = serial.Serial(self.port, 300, stopbits=serial.STOPBITS_ONE)
+        temporary_serial = serial.Serial(self.port, 300, stopbits=serial.STOPBITS_ONE, timeout=1)
 
         # Send two break characters, with 1 stop bit in between
         temporary_serial.write([constants.UPDI_BREAK, constants.UPDI_BREAK])
