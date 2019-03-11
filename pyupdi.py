@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """
     Simple command line pyupdi utility
 """
@@ -65,6 +65,8 @@ def _main():
                         help="Perform a chip erase (implied with --flash)")
     parser.add_argument("-b", "--baudrate", type=int, default=115200)
     parser.add_argument("-f", "--flash", help="Intel HEX file to flash.")
+    parser.add_argument("-r", "--reset", action="store_true",
+                        help="Reset")
     parser.add_argument("-fs", "--fuses", action="append", nargs="*",
                         help="Fuse to set (syntax: fuse_nr:0xvalue)")
     parser.add_argument("-v", "--verbose", action="store_true",
@@ -72,8 +74,8 @@ def _main():
 
     args = parser.parse_args(sys.argv[1:])
 
-    if args.fuses is None and args.flash is None and not args.erase:
-        print("No action (erase, flash or fuses)")
+    if not any( (args.fuses, args.flash, args.erase, args.reset)):
+        print("No action (erase, flash, reset or fuses)")
         sys.exit(0)
 
     if args.verbose:
@@ -86,18 +88,19 @@ def _main():
     nvm = UpdiNvmProgrammer(comport=args.comport,
                             baud=args.baudrate,
                             device=Device(args.device))
+    if not args.reset: # any action except reset
+        try:
+            nvm.enter_progmode()
+        except:
+            print("Device is locked. Performing unlock with chip erase.")
+            nvm.unlock_device()
 
-    try:
-        nvm.enter_progmode()
-    except:
-        print("Device is locked. Performing unlock with chip erase.")
-        nvm.unlock_device()
+        nvm.get_device_info()
 
-    nvm.get_device_info()
+        if not _process(nvm, args):
+            print("Error during processing")
 
-    if not _process(nvm, args):
-        print("Error during processing")
-
+    # Reset only needs this.
     nvm.leave_progmode()
 
 
