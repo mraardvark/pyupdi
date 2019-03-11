@@ -77,16 +77,9 @@ class UpdiPhysical(object):
         """
         self._loginfo("send", command)
 
-        for character in command:
-
-            # Send
-            self.ser.write([character])
-
-            # Echo
-            self.ser.read()
-
-            # Inter-byte delay
-            time.sleep(self.ibdly)
+        self.ser.write(command)
+        # it will echo back.
+        self.ser.read(len(command))
 
     def receive(self, size):
         """
