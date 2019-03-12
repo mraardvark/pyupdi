@@ -79,7 +79,10 @@ class UpdiPhysical(object):
 
         self.ser.write(command)
         # it will echo back.
-        self.ser.read(len(command))
+        echo = self.ser.read(len(command))
+        if echo != bytes(command):
+            self._loginfo("incorrect echo", echo)
+            raise Exception("Incorrect echo data")
 
     def receive(self, size):
         """

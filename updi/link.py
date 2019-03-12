@@ -2,6 +2,7 @@
     Link layer in UPDI protocol stack
 """
 import logging
+import time
 
 from updi.physical import UpdiPhysical
 import updi.constants as constants
@@ -173,23 +174,20 @@ class UpdiDatalink(object):
     def st_ptr_inc16(self, data):
         """
             Store a 16-bit word value to the pointer location with pointer post-increment
+    
+            Disable acks when we do this, to reduce latency.
         """
         self.logger.info("ST16 to *ptr++")
+        ctrla_ackon = 1 << constants.UPDI_CTRLA_IBDLY_BIT # with acks enabled.
+        ctrla_ackoff = ctrla_ackon | (1 << constants.UPDI_CTRLA_RSD_BIT) # acks off. (RSD)
+        # (Response signature disable)
+        self.stcs(constants.UPDI_CS_CTRLA, ctrla_ackoff)
         self.updi_phy.send([constants.UPDI_PHY_SYNC, constants.UPDI_ST | constants.UPDI_PTR_INC |
-                            constants.UPDI_DATA_16, data[0], data[1]])
-        response = self.updi_phy.receive(1)
+                            constants.UPDI_DATA_16] )
+        self.updi_phy.send(data) # No response expected.
+        # Re-enable acks
+        self.stcs(constants.UPDI_CS_CTRLA, ctrla_ackon)
 
-        if len(response) != 1 or response[0] != constants.UPDI_PHY_ACK:
-            raise Exception("ACK error with st_ptr_inc16")
-
-        n = 2
-        while n < len(data):
-            self.updi_phy.send([data[n], data[n + 1]])
-            response = self.updi_phy.receive(1)
-
-            if len(response) != 1 or response[0] != constants.UPDI_PHY_ACK:
-                raise Exception("Error with st_ptr_inc16")
-            n += 2
 
     def repeat(self, repeats):
         """
