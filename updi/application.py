@@ -75,6 +75,11 @@ class UpdiApplication(object):
         if not key_status & (1 << constants.UPDI_ASI_KEY_STATUS_CHIPERASE):
             raise Exception("Key not accepted")
 
+        # Insert NVMProg key as well
+        # In case of CRC being enabled, the device must be left in programming mode after the erase
+        # to allow the CRC to be disabled (or flash reprogrammed)
+        self._progmode_key()
+
         # Toggle reset
         self.reset(apply_reset=True)
         self.reset(apply_reset=False)
@@ -83,14 +88,14 @@ class UpdiApplication(object):
         if not self.wait_unlocked(100):
             raise Exception("Failed to chip erase using key")
 
-    def enter_progmode(self):
+    def _progmode_key(self):
         """
-            Enters into NVM programming mode
+            Inserts the NVMProg key and checks that its accepted
         """
         # First check if NVM is already enabled
         if self.in_prog_mode():
             self.logger.info("Already in NVM programming mode")
-            return True
+            return
 
         self.logger.info("Entering NVM programming mode")
 
@@ -103,6 +108,13 @@ class UpdiApplication(object):
 
         if not key_status & (1 << constants.UPDI_ASI_KEY_STATUS_NVMPROG):
             raise Exception("Key not accepted")
+
+    def enter_progmode(self):
+        """
+            Enters into NVM programming mode
+        """
+        # Enter NVMProg key
+        self._progmode_key()
 
         # Toggle reset
         self.reset(apply_reset=True)
