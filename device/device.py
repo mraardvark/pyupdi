@@ -7,8 +7,8 @@ DEVICES_MEGA_32K = set(["mega3208", "mega3209"])
 
 # tinyAVR
 DEVICES_TINY_32K = set(["tiny3216", "tiny3217"])
-DEVICES_TINY_16K = set(["tiny1614", "tiny1616", "tiny1617"])
-DEVICES_TINY_8K = set(["tiny814", "tiny816", "tiny817"])
+DEVICES_TINY_16K = set(["tiny1604", "tiny1606", "tiny1607", "tiny1614", "tiny1616", "tiny1617"])
+DEVICES_TINY_8K = set(["tiny804", "tiny806", "tiny807", "tiny814", "tiny816", "tiny817"])
 DEVICES_TINY_4K = set(["tiny402", "tiny404", "tiny406", "tiny412", "tiny414", "tiny416", "tiny417"])
 DEVICES_TINY_2K = set(["tiny202", "tiny204", "tiny212", "tiny214"])
 
