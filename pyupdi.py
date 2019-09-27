@@ -55,6 +55,9 @@ pyupdi is a Python utility for programming AVR devices with UPDI interface
 
 
 def _main():
+    if sys.version_info[0] < 3:
+        print("WARNING: for best results use Python3")
+
     parser = argparse.ArgumentParser(description="Simple command line"
                                      " interface for UPDI programming")
     parser.add_argument("-d", "--device", choices=Device.get_supported_devices(),
