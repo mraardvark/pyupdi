@@ -70,16 +70,16 @@ def _main():
     parser.add_argument("-f", "--flash", help="Intel HEX file to flash.")
     parser.add_argument("-r", "--reset", action="store_true",
                         help="Reset")
-    parser.add_argument("--setfuse", action="append", nargs="*",
+    parser.add_argument("-fs", "--fuses", action="append", nargs="*",
                         help="Fuse to set (syntax: fuse_nr:0xvalue)")
-    parser.add_argument("--readfuses", action="store_true",
+    parser.add_argument("-fr", "--readfuses", action="store_true",
                         help="Read out the fuse-bits")
     parser.add_argument("-v", "--verbose", action="store_true",
                         help="Set verbose mode")
 
     args = parser.parse_args(sys.argv[1:])
 
-    if not any( (args.setfuse, args.flash, args.erase, args.reset, args.readfuses)):
+    if not any( (args.fuses, args.flash, args.erase, args.reset, args.readfuses)):
         print("No action (erase, flash, reset or fuses)")
         sys.exit(0)
 
@@ -115,8 +115,8 @@ def _process(nvm, args):
             nvm.chip_erase()
         except:
             return False
-    if args.setfuse is not None:
-        for fslist in args.setfuse:
+    if args.fuses is not None:
+        for fslist in args.fuses:
             for fsarg in fslist:
                 if not re.match("^[0-9]+:0x[0-9a-fA-F]+$", fsarg):
                     print("Bad fuses format {}. Expected fuse_nr:0xvalue".format(fsarg))
@@ -128,7 +128,7 @@ def _process(nvm, args):
                     return False
     if args.flash is not None:
         return _flash_file(nvm, args.flash)
-    if args.readfuses is not None:
+    if args.readfuses:
         if not _read_fuses(nvm):
             return False
     return True
