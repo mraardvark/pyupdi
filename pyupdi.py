@@ -161,7 +161,8 @@ def _set_fuse(nvm, fusenum, value):
     ret = actual_val == value
     if not ret:
         print("Verify error for fuse {0}, expected 0x{1:02X} read 0x{2:02X}".format(fusenum, value, actual_val))
-    print("Fuse {0} set to 0x{1:02X} successfully".format(fusenum, value))
+    else:
+        print("Fuse {0} set to 0x{1:02X} successfully".format(fusenum, value))
     return ret
 
 
