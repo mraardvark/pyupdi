@@ -72,12 +72,14 @@ def _main():
                         help="Reset")
     parser.add_argument("-fs", "--fuses", action="append", nargs="*",
                         help="Fuse to set (syntax: fuse_nr:0xvalue)")
+    parser.add_argument("-fr", "--readfuses", action="store_true",
+                        help="Read out the fuse-bits")
     parser.add_argument("-v", "--verbose", action="store_true",
                         help="Set verbose mode")
 
     args = parser.parse_args(sys.argv[1:])
 
-    if not any( (args.fuses, args.flash, args.erase, args.reset)):
+    if not any( (args.fuses, args.flash, args.erase, args.reset, args.readfuses)):
         print("No action (erase, flash, reset or fuses)")
         sys.exit(0)
 
@@ -126,6 +128,9 @@ def _process(nvm, args):
                     return False
     if args.flash is not None:
         return _flash_file(nvm, args.flash)
+    if args.readfuses:
+        if not _read_fuses(nvm):
+            return False
     return True
 
 
@@ -156,7 +161,17 @@ def _set_fuse(nvm, fusenum, value):
     ret = actual_val == value
     if not ret:
         print("Verify error for fuse {0}, expected 0x{1:02X} read 0x{2:02X}".format(fusenum, value, actual_val))
+    else:
+        print("Fuse {0} set to 0x{1:02X} successfully".format(fusenum, value))
     return ret
+
+
+def _read_fuses(nvm):
+    print("Fuse:Value")
+    for fusenum in range (0,11): # This range should probably be defined for each chip
+        fuseval=nvm.read_fuse(fusenum)
+        print("{0}:0x{1:02X}".format(fusenum,fuseval))
+    return True
 
 
 if __name__ == "__main__":
