@@ -84,7 +84,12 @@ class UpdiPhysical(object):
             time.sleep(0.002)
             self.ser.dtr = False
         elif (self.hvtype == 'gpio'):
-            gpiopin = abs(int(self.hvinfo))
+            if not gpio:
+                raise Exception("GPIO HV requested and gpio module not installed. pip install gpio");
+            try:
+                gpiopin = abs(int(self.hvinfo))
+            except:
+                raise Exception("GPIO HV requested and no portnum given")
             gpioneg = self.hvinfo.startswith("-")
             gpio.setup(gpiopin, gpio.OUT, initial=gpioneg)
             gpio.set(gpiopin, not gpioneg)
