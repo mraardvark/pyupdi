@@ -81,7 +81,7 @@ class UpdiPhysical(object):
         if (self.hvtype == 'dtr'):
             self.logger.info("Pulsing DTR")
             self.ser.dtr = True
-            time.sleep(0.002)
+            time.sleep(0.01)
             self.ser.dtr = False
         elif (self.hvtype == 'gpio'):
             if not gpio:
