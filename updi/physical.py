@@ -13,7 +13,7 @@ class UpdiPhysical(object):
         PDI physical driver using a given COM port at a given baud
     """
 
-    def __init__(self, port, baud=115200):
+    def __init__(self, port, baud=115200, dtr=0):
         """
             Initialise the COM port
         """
@@ -26,6 +26,8 @@ class UpdiPhysical(object):
         self.baud = baud
         self.ser = None
         self.initialise_serial(self.port, self.baud)
+        if dtr > 0:
+            self.pulse_dtr(dtr)
         # send an initial break as handshake
         self.send([constants.UPDI_BREAK])
 
@@ -70,6 +72,15 @@ class UpdiPhysical(object):
         temporary_serial.close()
         self.initialise_serial(self.port, self.baud)
 
+    def pulse_dtr(self, ms):
+        """
+            Pulse DTR to enable 12V
+        """
+        self.logger.info("Pulsing DTR")
+        self.ser.dtr = True
+        time.sleep(ms/1000)
+        self.ser.dtr = False
+        
     def send(self, command):
         """
             Sends a char array to UPDI with inter-byte delay

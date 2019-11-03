@@ -12,9 +12,9 @@ class UpdiNvmProgrammer(object):
         NVM programming utility for UPDI
     """
 
-    def __init__(self, comport, baud, device):
+    def __init__(self, comport, baud, device, dtr):
 
-        self.application = UpdiApplication(comport, baud, device)
+        self.application = UpdiApplication(comport, baud, device, dtr)
         self.device = device
         self.progmode = False
         self.logger = logging.getLogger("nvm")

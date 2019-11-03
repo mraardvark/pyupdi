@@ -68,6 +68,8 @@ def _main():
                         help="Perform a chip erase (implied with --flash)")
     parser.add_argument("-b", "--baudrate", type=int, default=115200)
     parser.add_argument("-f", "--flash", help="Intel HEX file to flash.")
+    parser.add_argument("-pd", "--pulse-dtr", type=int, default=0,
+                        help="Pulse DTR for this many ms upon opening port")
     parser.add_argument("-r", "--reset", action="store_true",
                         help="Reset")
     parser.add_argument("-fs", "--fuses", action="append", nargs="*",
@@ -92,7 +94,8 @@ def _main():
 
     nvm = UpdiNvmProgrammer(comport=args.comport,
                             baud=args.baudrate,
-                            device=Device(args.device))
+                            device=Device(args.device),
+                            dtr=args.pulse_dtr)
     if not args.reset: # any action except reset
         try:
             nvm.enter_progmode()
