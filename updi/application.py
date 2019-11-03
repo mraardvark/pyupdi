@@ -13,8 +13,8 @@ class UpdiApplication(object):
         Generic application layer for UPDI
     """
 
-    def __init__(self, comport, baud, device=None, dtr=0):
-        self.datalink = UpdiDatalink(comport, baud, dtr)
+    def __init__(self, comport, baud, device=None, hv=None):
+        self.datalink = UpdiDatalink(comport, baud, hv)
         self.device = device
 
         self.logger = logging.getLogger("app")

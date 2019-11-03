@@ -3,6 +3,7 @@
 """
 import logging
 import time
+import gpio
 import serial
 
 import updi.constants as constants
@@ -13,7 +14,7 @@ class UpdiPhysical(object):
         PDI physical driver using a given COM port at a given baud
     """
 
-    def __init__(self, port, baud=115200, dtr=0):
+    def __init__(self, port, baud=115200, hv=None):
         """
             Initialise the COM port
         """
@@ -24,12 +25,16 @@ class UpdiPhysical(object):
         self.ibdly = 0.0001
         self.port = port
         self.baud = baud
+        if hv:
+            (self.hvtype, _, self.hvinfo) = hv.partition(":")
         self.ser = None
         self.initialise_serial(self.port, self.baud)
-        if dtr > 0:
-            self.pulse_dtr(dtr)
+        if hv:
+            self.send_hv()
+            time.sleep(0.002)
         # send an initial break as handshake
         self.send([constants.UPDI_BREAK])
+        #self.ser.send_break(25)
 
     def initialise_serial(self, port, baud):
         """
@@ -72,14 +77,20 @@ class UpdiPhysical(object):
         temporary_serial.close()
         self.initialise_serial(self.port, self.baud)
 
-    def pulse_dtr(self, ms):
-        """
-            Pulse DTR to enable 12V
-        """
-        self.logger.info("Pulsing DTR")
-        self.ser.dtr = True
-        time.sleep(ms/1000)
-        self.ser.dtr = False
+    def send_hv(self):
+        if (self.hvtype == 'dtr'):
+            self.logger.info("Pulsing DTR")
+            self.ser.dtr = True
+            time.sleep(0.002)
+            self.ser.dtr = False
+        elif (self.hvtype == 'gpio'):
+            gpiopin = abs(int(self.hvinfo))
+            gpioneg = self.hvinfo.startswith("-")
+            gpio.setup(gpiopin, gpio.OUT, initial=gpioneg)
+            gpio.set(gpiopin, not gpioneg)
+            time.sleep(0.01)
+            gpio.set(gpiopin, gpioneg)
+            gpio.cleanup(gpiopin)
         
     def send(self, command):
         """

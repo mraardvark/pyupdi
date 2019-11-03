@@ -13,11 +13,11 @@ class UpdiDatalink(object):
         UPDI data link class handles the UPDI data protocol within the device
     """
 
-    def __init__(self, comport, baud, dtr):
+    def __init__(self, comport, baud, hv):
         self.logger = logging.getLogger("link")
 
         # Create a UPDI physical connection
-        self.updi_phy = UpdiPhysical(comport, baud, dtr)
+        self.updi_phy = UpdiPhysical(comport, baud, hv)
 
         # Initialise
         self.init()
