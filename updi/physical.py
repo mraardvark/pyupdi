@@ -25,11 +25,10 @@ class UpdiPhysical(object):
         self.ibdly = 0.0001
         self.port = port
         self.baud = baud
-        if hv:
-            (self.hvtype, _, self.hvinfo) = hv.partition(":")
         self.ser = None
         self.initialise_serial(self.port, self.baud)
         if hv:
+            (self.hvtype, _, self.hvinfo) = hv.partition(":")
             self.send_hv()
             time.sleep(0.002)
         # send an initial break as handshake
