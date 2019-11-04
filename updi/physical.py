@@ -90,10 +90,24 @@ class UpdiPhysical(object):
             except:
                 raise Exception("GPIO HV requested and no portnum given")
             gpioneg = self.hvinfo.startswith("-")
-            gpio.setup(gpiopin, gpio.OUT, initial=gpioneg)
-            gpio.set(gpiopin, not gpioneg)
-            time.sleep(0.01)
-            gpio.set(gpiopin, gpioneg)
+
+            attempts = 3
+            
+            while attempts:
+                try:
+                    gpio.setup(gpiopin, gpio.OUT)
+                    gpio.set(gpiopin, not gpioneg)
+                    time.sleep(0.01)
+                    gpio.set(gpiopin, gpioneg)
+                    break
+                except PermissionError as ex:
+                    lastex = ex
+                    attempts = attempts - 1
+                    time.sleep(0.01)
+
+            if not attempts:
+                raise Exception("Unable to send GPIO HV pulse") from lastex
+
             gpio.cleanup(gpiopin)
         
     def send(self, command):
