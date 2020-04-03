@@ -19,24 +19,50 @@ class UpdiApplication(object):
 
         self.logger = logging.getLogger("app")
 
+        self.write_nvm = self.write_nvm_v0
+
     def device_info(self):
         """
             Reads out device information from various sources
         """
-        sib = self.datalink.read_sib()
+        info = {}
+        sib = bytearray(self.datalink.read_sib())
         self.logger.info("SIB read out as: {}".format(sib))
-        self.logger.info("Family ID = {}".format(sib[0:7]))
-        self.logger.info("NVM revision = {}".format(sib[10]))
-        self.logger.info("OCD revision = {}".format(sib[13]))
-        self.logger.info("PDI OSC = {}MHz".format(sib[15]))
+        
+        # Parse fixed width fields according to spec
+        family = sib[0:7].strip()
+        info['family'] = family.decode()
+        self.logger.info("Device family ID: '%s'", family.decode())
+
+        nvm = sib[8:11].strip()
+        self.logger.info("NVM interface: '%s'", nvm.decode())
+        info['nvm'] = nvm.decode()
+        if nvm.decode() == "P:2":
+            self.logger.info("Using PDI v2")
+            self.write_nvm = self.write_nvm_v1
+            self.datalink.set_24bit_updi(True)
+
+        ocd = sib[11:14].strip()
+        info['ocd'] = ocd.decode()
+        self.logger.info("Debug interface: '%s'", ocd.decode())
+
+        osc = sib[15:19].strip()
+        info['osc'] = osc.decode()
+        self.logger.info("PDI oscillator: '%s'", osc.decode())
 
         self.logger.info("PDI revision = 0x{:X}".format(self.datalink.ldcs(constants.UPDI_CS_STATUSA) >> 4))
         if self.in_prog_mode():
             if self.device is not None:
                 devid = self.read_data(self.device.sigrow_address, 3)
+                device_id_string = "{0:X}{1:X}{2:X}".format(devid[0], devid[1], devid[2])
+                info['device_id'] = device_id_string
+                self.logger.info("Device ID = '%s'", device_id_string)
+
                 devrev = self.read_data(self.device.syscfg_address + 1, 1)
-                self.logger.info("Device ID = {0:X}{1:X}{2:X} rev {3:}".format(devid[0], devid[1], devid[2],
-                                                                               chr(ord('A') + devrev[0])))
+                device_rev_string = "{0:}".format(chr(ord('A') + devrev[0]))
+                info['device_rev'] = device_rev_string
+                self.logger.info("Device rev = '%s'", device_rev_string)
+        return info
 
     def in_prog_mode(self):
         """
@@ -85,7 +111,7 @@ class UpdiApplication(object):
         self.reset(apply_reset=False)
 
         # And wait for unlock
-        if not self.wait_unlocked(100):
+        if not self.wait_unlocked(200):
             raise Exception("Failed to chip erase using key")
 
     def _progmode_key(self):
@@ -120,11 +146,13 @@ class UpdiApplication(object):
         self.reset(apply_reset=True)
         self.reset(apply_reset=False)
 
-        # And wait for unlock
-        if not self.wait_unlocked(100):
-            raise Exception("Failed to enter NVM programming mode: device is locked")
-
-        # Check for NVMPROG flag
+        # Wait for NVMPROG flag
+        while True:
+            self.logger.info("Wait for NVMPROG")
+            sys_status = self.datalink.ldcs(constants.UPDI_ASI_SYS_STATUS)
+            if sys_status & (1 << constants.UPDI_ASI_SYS_STATUS_NVMPROG):
+                break
+        
         if not self.in_prog_mode():
             raise Exception("Failed to enter NVM programming mode")
 
@@ -148,9 +176,19 @@ class UpdiApplication(object):
         if apply_reset:
             self.logger.info("Apply reset")
             self.datalink.stcs(constants.UPDI_ASI_RESET_REQ, constants.UPDI_RESET_REQ_VALUE)
+            self.logger.info("Check reset")
+            sys_status = self.datalink.ldcs(constants.UPDI_ASI_SYS_STATUS)
+            if not sys_status & (1 << constants.UPDI_ASI_SYS_STATUS_RSTSYS):
+                raise("Error applying reset")
         else:
             self.logger.info("Release reset")
             self.datalink.stcs(constants.UPDI_ASI_RESET_REQ, 0x00)
+            while True:
+                self.logger.info("Wait for !reset")
+                sys_status = self.datalink.ldcs(constants.UPDI_ASI_SYS_STATUS)
+                if not sys_status & (1 << constants.UPDI_ASI_SYS_STATUS_RSTSYS):
+                    break
+                    #raise("Error releasing reset")
 
     def wait_flash_ready(self):
         """
@@ -193,7 +231,8 @@ class UpdiApplication(object):
             raise Exception("Timeout waiting for flash ready before erase ")
 
         # Erase
-        self.execute_nvm_command(constants.UPDI_NVMCTRL_CTRLA_CHIP_ERASE)
+        self.execute_nvm_command(constants.UPDI_V0_NVMCTRL_CTRLA_CHIP_ERASE)
+        # TODO:  erase for DA? 
 
         # And wait for it
         if not self.wait_flash_ready():
@@ -211,7 +250,7 @@ class UpdiApplication(object):
             return self.datalink.st16(address, value)
 
         # Range check
-        if len(data) > (constants.UPDI_MAX_REPEAT_SIZE + 1) << 1:
+        if len(data) > constants.UPDI_MAX_REPEAT_SIZE << 1:
             raise Exception("Invalid length")
 
         # Store the address
@@ -234,7 +273,7 @@ class UpdiApplication(object):
             return self.datalink.st(address + 1, data[1])
 
         # Range check
-        if len(data) > (constants.UPDI_MAX_REPEAT_SIZE + 1):
+        if len(data) > constants.UPDI_MAX_REPEAT_SIZE:
             raise Exception("Invalid length")
 
         # Store the address
@@ -244,13 +283,14 @@ class UpdiApplication(object):
         self.datalink.repeat(len(data))
         return self.datalink.st_ptr_inc(data)
 
-    def write_nvm(self, address, data, nvm_command=constants.UPDI_NVMCTRL_CTRLA_WRITE_PAGE, use_word_access=True):
+    def write_nvm_v0(self, address, data, use_word_access=True):
         """
             Writes a page of data to NVM.
             By default the PAGE_WRITE command is used, which
             requires that the page is already erased.
             By default word access is used (flash)
         """
+        nvm_command=constants.UPDI_V0_NVMCTRL_CTRLA_WRITE_PAGE
 
         # Check that NVM controller is ready
         if not self.wait_flash_ready():
@@ -258,9 +298,9 @@ class UpdiApplication(object):
 
         # Clear the page buffer
         self.logger.info("Clear page buffer")
-        self.execute_nvm_command(constants.UPDI_NVMCTRL_CTRLA_PAGE_BUFFER_CLR)
+        self.execute_nvm_command(constants.UPDI_V0_NVMCTRL_CTRLA_PAGE_BUFFER_CLR)
 
-        # Waif for NVM controller to be ready
+        # Wait for NVM controller to be ready
         if not self.wait_flash_ready():
             raise Exception("Timeout waiting for flash ready after page buffer clear")
 
@@ -274,9 +314,36 @@ class UpdiApplication(object):
         self.logger.info("Committing page")
         self.execute_nvm_command(nvm_command)
 
-        # Waif for NVM controller to be ready again
+        # Wait for NVM controller to be ready again
         if not self.wait_flash_ready():
             raise Exception("Timeout waiting for flash ready after page write ")
+
+    def write_nvm_v1(self, address, data):
+        """
+            Writes data to NVM.
+            This version of the NVM block has no page buffer, so words are written directly.
+        """
+        nvm_command=constants.UPDI_V1_NVMCTRL_CTRLA_FLASH_WRITE#  UPDI_NVMCTRL_CTRLA_WRITE_PAGE
+
+        # Check that NVM controller is ready
+        if not self.wait_flash_ready():
+            raise Exception("Timeout waiting for flash ready before page buffer clear ")
+
+        # Write the command to the NVM controller
+        self.logger.info("NVM write command")
+        self.execute_nvm_command(nvm_command)
+
+        # Write the data
+        self.write_data_words(address, data)
+
+        # Wait for NVM controller to be ready again
+        if not self.wait_flash_ready():
+            raise Exception("Timeout waiting for flash ready after data write")
+
+        # Remove command from NVM controller
+        self.logger.info("Clear NVM command")
+        self.execute_nvm_command(constants.UPDI_V1_NVMCTRL_CTRLA_NOCMD)
+
 
     def read_data(self, address, size):
         """
@@ -284,7 +351,7 @@ class UpdiApplication(object):
         """
         self.logger.info("Reading {0:d} bytes from 0x{1:04X}".format(size, address))
         # Range check
-        if size > constants.UPDI_MAX_REPEAT_SIZE + 1:
+        if size > constants.UPDI_MAX_REPEAT_SIZE:
             raise Exception("Cant read that many bytes in one go")
 
         # Store the address
@@ -304,7 +371,7 @@ class UpdiApplication(object):
         self.logger.info("Reading {0:d} words from 0x{1:04X}".format(words, address))
 
         # Range check
-        if words > (constants.UPDI_MAX_REPEAT_SIZE >> 1) + 1:
+        if words > constants.UPDI_MAX_REPEAT_SIZE:
             raise Exception("Cant read that many words in one go")
 
         # Store the address
