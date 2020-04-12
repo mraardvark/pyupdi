@@ -82,7 +82,7 @@ def _main():
     args = parser.parse_args(sys.argv[1:])
 
     if not any( (args.fuses, args.flash, args.erase, args.reset, args.readfuses, args.info) ):
-        print("No action (erase, flash, reset or fuses)")
+        print("No action (erase, flash, reset, fuses or info)")
         sys.exit(0)
 
     if args.verbose:

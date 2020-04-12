@@ -104,7 +104,6 @@ class UpdiNvmProgrammer(object):
         for page in pages:
             self.logger.info("Writing page at 0x{0:04X}".format(address))
             self.application.write_nvm(address, page)
-            #TODO Port to DA
             address += len(page)
 
     def read_fuse(self, fusenum):
@@ -133,22 +132,7 @@ class UpdiNvmProgrammer(object):
         fuse_data = [value]
         fuse_address = self.device.fuses_address + fusenum
 
-        address = self.device.nvmctrl_address + constants.UPDI_NVMCTRL_ADDRL
-        data = [fuse_address & 0xff]
-        self.application.write_data(address, data)
-
-        address = self.device.nvmctrl_address + constants.UPDI_NVMCTRL_ADDRH
-        data = [fuse_address >> 8]
-        self.application.write_data(address, data)
-
-        address = self.device.nvmctrl_address + constants.UPDI_NVMCTRL_DATAL
-        self.application.write_data(address, fuse_data)
-
-        address = self.device.nvmctrl_address + constants.UPDI_NVMCTRL_CTRLA
-        data = [constants.UPDI_V0_NVMCTRL_CTRLA_WRITE_FUSE]
-        #TODO : port to DA
-
-        self.application.write_data(address, data)
+        return self.application.write_fuse(fuse_address, fuse_data)
 
     def pad_data(self, data, blocksize, character=0xFF):
         """

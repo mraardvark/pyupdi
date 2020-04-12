@@ -61,7 +61,6 @@ class UpdiDatalink(object):
         response = self.updi_phy.receive(1)
         if len(response) != 1:
             # Todo - flag error
-            #raise Exception("awh!")
             return 0x00
         return response[0]
 
@@ -224,7 +223,7 @@ class UpdiDatalink(object):
         """
             Store a value to the repeat counter
         """
-        if (repeats - 1)> constants.UPDI_MAX_REPEAT_SIZE:
+        if (repeats - 1) > constants.UPDI_MAX_REPEAT_SIZE:
             raise Exception("Invalid repeat count!")
         self.logger.info("Repeat {0:d}".format(repeats))
         repeats -= 1
