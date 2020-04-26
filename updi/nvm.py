@@ -18,6 +18,10 @@ class UpdiNvmProgrammer(object):
         self.device = device
         self.progmode = False
         self.logger = logging.getLogger("nvm")
+        self.progress = False
+
+    def enable_progress(self):
+        self.progress = True
 
     def get_device_info(self):
         """
@@ -79,8 +83,11 @@ class UpdiNvmProgrammer(object):
             raise Exception("Only full page aligned flash supported.")
 
         data = []
+        start_address = address
         # Read out page-wise for convenience
         for _ in range(pages):
+            if self.progress:
+                print("  {0:3.0f}%".format((address - start_address) * 100 / size), end = "\r")
             self.logger.info("Reading page at 0x{0:04X}".format(address))
             data += (self.application.read_data_words(address, self.device.flash_pagesize >> 1))
             address += self.device.flash_pagesize
@@ -101,7 +108,10 @@ class UpdiNvmProgrammer(object):
         pages = self.page_data(data, self.device.flash_pagesize)
 
         # Program each page
+        start_address = address
         for page in pages:
+            if self.progress:
+                print("  {0:3.0f}%".format((address - start_address) * 100 / len(data)), end = "\r")
             self.logger.info("Writing page at 0x{0:04X}".format(address))
             self.application.write_nvm(address, page)
             address += len(page)

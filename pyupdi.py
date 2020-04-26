@@ -78,6 +78,8 @@ def _main():
                         help="Read out the fuse-bits")
     parser.add_argument("-v", "--verbose", action="store_true",
                         help="Set verbose mode")
+    parser.add_argument("-p", "--progress", action="store_true",
+                        help="Show progress output")
 
     args = parser.parse_args(sys.argv[1:])
 
@@ -95,6 +97,8 @@ def _main():
     nvm = UpdiNvmProgrammer(comport=args.comport,
                             baud=args.baudrate,
                             device=Device(args.device))
+    if args.progress:
+        nvm.enable_progress()
     if not args.reset: # any action except reset
         # Reteieve info before building the stack to be sure its the correct device
         nvm.get_device_info()
@@ -131,22 +135,28 @@ def _process(nvm, args):
                 if not _set_fuse(nvm, fusenum, value):
                     return False
     if args.flash is not None:
-        return _flash_file(nvm, args.flash)
+        return _flash_file(nvm, args.flash, args.progress)
     if args.readfuses:
         if not _read_fuses(nvm):
             return False
     return True
 
 
-def _flash_file(nvm, filename):
+def _flash_file(nvm, filename, progress):
     data, start_address = nvm.load_ihex(filename)
 
     fail = False
 
+    if progress:
+        print("Erasing chip...")
     nvm.chip_erase()
+    if progress:
+        print("Writing flash...")
     nvm.write_flash(start_address, data)
 
     # Read out again
+    if progress:
+        print("Verifying flash...")
     readback = nvm.read_flash(nvm.device.flash_start, len(data))
     for i, _ in enumerate(data):
         if data[i] != readback[i]:
