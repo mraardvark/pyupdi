@@ -72,6 +72,8 @@ def _main():
                         help="Use high voltage (syntax: dtr | gpio:[-]portnum where - signifies active low output)")
     parser.add_argument("-r", "--reset", action="store_true",
                         help="Reset")
+    parser.add_argument("-i", "--info", action="store_true",
+                        help="Info")
     parser.add_argument("-fs", "--fuses", action="append", nargs="*",
                         help="Fuse to set (syntax: fuse_nr:0xvalue)")
     parser.add_argument("-fr", "--readfuses", action="store_true",
@@ -81,8 +83,8 @@ def _main():
 
     args = parser.parse_args(sys.argv[1:])
 
-    if not any( (args.fuses, args.flash, args.erase, args.reset, args.readfuses)):
-        print("No action (erase, flash, reset or fuses)")
+    if not any( (args.fuses, args.flash, args.erase, args.reset, args.readfuses, args.info) ):
+        print("No action (erase, flash, reset, fuses or info)")
         sys.exit(0)
 
     if args.verbose:
@@ -97,13 +99,15 @@ def _main():
                             device=Device(args.device),
                             hv=args.hv_init)
     if not args.reset: # any action except reset
+        # Reteieve info before building the stack to be sure its the correct device
+        nvm.get_device_info()
         try:
             nvm.enter_progmode()
         except:
             print("Device is locked. Performing unlock with chip erase.")
             nvm.unlock_device()
 
-        nvm.get_device_info()
+        print("Device info: {0:s}".format(str(nvm.get_device_info())))
 
         if not _process(nvm, args):
             print("Error during processing")

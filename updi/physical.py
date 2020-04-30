@@ -20,9 +20,6 @@ class UpdiPhysical(object):
         """
 
         self.logger = logging.getLogger("phy")
-
-        # Inter-byte delay
-        self.ibdly = 0.0001
         self.port = port
         self.baud = baud
         self.ser = None
@@ -64,6 +61,7 @@ class UpdiPhysical(object):
         # At 300 bauds, the break character will pull the line low for 30ms
         # Which is slightly above the recommended 24.6ms
         self.ser.close()
+
         temporary_serial = serial.Serial(self.port, 300, stopbits=serial.STOPBITS_ONE, timeout=1)
 
         # Send two break characters, with 1 stop bit in between
@@ -112,23 +110,21 @@ class UpdiPhysical(object):
         
     def send(self, command):
         """
-            Sends a char array to UPDI with inter-byte delay
+            Sends a char array to UPDI with NO inter-byte delay
             Note that the byte will echo back
         """
-        self._loginfo("send", command)
+        self.logger.info("send %d bytes", len(command))
+        self._loginfo("data: ", command)
 
         self.ser.write(command)
         # it will echo back.
         echo = self.ser.read(len(command))
-        if echo != bytes(command):
-            self._loginfo("incorrect echo", echo)
-            raise Exception("Incorrect echo data")
 
     def receive(self, size):
         """
             Receives a frame of a known number of chars from UPDI
         """
-        response = []
+        response = bytearray()
         timeout = 1
 
         # For each byte
@@ -158,5 +154,5 @@ class UpdiPhysical(object):
 
     def __del__(self):
         if self.ser:
-            self.logger.info("Closing {}".format(self.port))
+            self.logger.info("Closing port '%s'", self.port)
             self.ser.close()
