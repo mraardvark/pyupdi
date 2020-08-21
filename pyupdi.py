@@ -68,6 +68,8 @@ def _main():
                         help="Perform a chip erase (implied with --flash)")
     parser.add_argument("-b", "--baudrate", type=int, default=115200)
     parser.add_argument("-f", "--flash", help="Intel HEX file to flash.")
+    parser.add_argument("-hv", "--hv-init",
+                        help="Use high voltage (syntax: dtr | gpio:[-]portnum where - signifies active low output)")
     parser.add_argument("-r", "--reset", action="store_true",
                         help="Reset")
     parser.add_argument("-i", "--info", action="store_true",
@@ -94,7 +96,8 @@ def _main():
 
     nvm = UpdiNvmProgrammer(comport=args.comport,
                             baud=args.baudrate,
-                            device=Device(args.device))
+                            device=Device(args.device),
+                            hv=args.hv_init)
     if not args.reset: # any action except reset
         # Reteieve info before building the stack to be sure its the correct device
         nvm.get_device_info()

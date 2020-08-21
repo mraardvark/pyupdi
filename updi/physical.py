@@ -3,6 +3,7 @@
 """
 import logging
 import time
+import gpio
 import serial
 
 import updi.constants as constants
@@ -13,7 +14,7 @@ class UpdiPhysical(object):
         PDI physical driver using a given COM port at a given baud
     """
 
-    def __init__(self, port, baud=115200):
+    def __init__(self, port, baud=115200, hv=None):
         """
             Initialise the COM port
         """
@@ -23,8 +24,13 @@ class UpdiPhysical(object):
         self.baud = baud
         self.ser = None
         self.initialise_serial(self.port, self.baud)
+        if hv:
+            (self.hvtype, _, self.hvinfo) = hv.partition(":")
+            self.send_hv()
+            time.sleep(0.002)
         # send an initial break as handshake
         self.send([constants.UPDI_BREAK])
+        #self.ser.send_break(25)
 
     def initialise_serial(self, port, baud):
         """
@@ -68,6 +74,40 @@ class UpdiPhysical(object):
         temporary_serial.close()
         self.initialise_serial(self.port, self.baud)
 
+    def send_hv(self):
+        if (self.hvtype == 'dtr'):
+            self.logger.info("Pulsing DTR")
+            self.ser.dtr = True
+            time.sleep(0.01)
+            self.ser.dtr = False
+        elif (self.hvtype == 'gpio'):
+            if not gpio:
+                raise Exception("GPIO HV requested and gpio module not installed. pip install gpio");
+            try:
+                gpiopin = abs(int(self.hvinfo))
+            except:
+                raise Exception("GPIO HV requested and no portnum given")
+            gpioneg = self.hvinfo.startswith("-")
+
+            attempts = 3
+            
+            while attempts:
+                try:
+                    gpio.setup(gpiopin, gpio.OUT)
+                    gpio.set(gpiopin, not gpioneg)
+                    time.sleep(0.01)
+                    gpio.set(gpiopin, gpioneg)
+                    break
+                except PermissionError as ex:
+                    lastex = ex
+                    attempts = attempts - 1
+                    time.sleep(0.01)
+
+            if not attempts:
+                raise Exception("Unable to send GPIO HV pulse") from lastex
+
+            gpio.cleanup(gpiopin)
+        
     def send(self, command):
         """
             Sends a char array to UPDI with NO inter-byte delay
