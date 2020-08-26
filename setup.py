@@ -10,7 +10,9 @@ setup(
     name = name,
     author = author,
     url = url,
-    scripts = [name + ".py"],
+    entry_points = {
+        'console_scripts': ['pyupdi=updi:_main'],
+    },
     packages = find_packages(),
     python_requires = '>3',
     install_requires = [r.strip() for r in open("requirements.txt").readlines()]
