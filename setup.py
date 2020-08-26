@@ -11,7 +11,7 @@ setup(
     author = author,
     url = url,
     entry_points = {
-        'console_scripts': ['pyupdi=pyupdi:main'],
+        'console_scripts': ['pyupdi=updi:_main'],
     },
     packages = find_packages(),
     python_requires = '>3',
