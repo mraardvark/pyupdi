@@ -4,7 +4,7 @@
 import re
 
 # AVR Dx
-DEVICE_AVR_D_SERIES = set(["avr128da28", "avr128da32", "avr128da48", "avr128da64", "avr64da28", "avr64da32", "avr64da48", "avr64da64", "avr32da28", "avr32da32", "avr32da48", "avr128db28", "avr128db32", "avr128db48", "avr128db64", "avr64db28", "avr64db32", "avr64db48", "avr64db64", "avr32db28", "avr32db32", "avr32db48", "avr128dd14", "avr128dd20", "avr128dd28", "avr128dd32", "avr32dd14", "avr32dd20", "avr32dd28", "avr32dd32", "avr16dd14", "avr16dd20", "avr16dd28", "avr16dd32"])
+DEVICE_AVR_D_SERIES = set(["avr128da28", "avr128da32", "avr128da48", "avr128da64", "avr64da28", "avr64da32", "avr64da48", "avr64da64", "avr32da28", "avr32da32", "avr32da48", "avr128db28", "avr128db32", "avr128db48", "avr128db64", "avr64db28", "avr64db32", "avr64db48", "avr64db64", "avr32db28", "avr32db32", "avr32db48", "avr64dd14", "avr64dd20", "avr64dd28", "avr64dd32", "avr32dd14", "avr32dd20", "avr32dd28", "avr32dd32", "avr16dd14", "avr16dd20", "avr16dd28", "avr16dd32"])
 
 # megaAVR
 DEVICES_MEGA_48K = set(["mega4808", "mega4809"])
