@@ -130,9 +130,8 @@ class UpdiNvmProgrammer(object):
             raise Exception("Flash not ready for fuse setting")
 
         fuse_data = [value]
-        fuse_address = self.device.fuses_address + fusenum
 
-        return self.application.write_fuse(fuse_address, fuse_data)
+        return self.application.write_fuse(fusenum, fuse_data)
 
     def pad_data(self, data, blocksize, character=0xFF):
         """
