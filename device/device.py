@@ -9,6 +9,8 @@ DEVICE_AVR_D_SERIES = set(["avr128da28", "avr128da32", "avr128da48", "avr128da64
 # megaAVR
 DEVICES_MEGA_48K = set(["mega4808", "mega4809"])
 DEVICES_MEGA_32K = set(["mega3208", "mega3209"])
+DEVICES_MEGA_16K = set(["mega1608", "mega1609"])
+DEVICES_MEGA_8K = set(["mega808", "mega809"])
 
 # tinyAVR
 DEVICES_TINY_32K = set(["tiny3216", "tiny3217"])
@@ -54,6 +56,14 @@ class Device(object):  # pylint: disable=too-few-public-methods
             self.flash_start = 0x4000
             self.flash_size = 32 * 1024
             self.flash_pagesize = 128
+        elif device_name in DEVICES_MEGA_16K:
+            self.flash_start = 0x4000
+            self.flash_size = 16 * 1024
+            self.flash_pagesize = 64
+        elif device_name in DEVICES_MEGA_8K:
+            self.flash_start = 0x4000
+            self.flash_size = 8 * 1024
+            self.flash_pagesize = 64
         elif device_name in DEVICES_TINY_32K:
             self.flash_start = 0x8000
             self.flash_size = 32 * 1024
@@ -89,6 +99,8 @@ class Device(object):  # pylint: disable=too-few-public-methods
             DEVICES_TINY_8K |
             DEVICES_TINY_16K |
             DEVICES_TINY_32K |
+            DEVICES_MEGA_8K |
+            DEVICES_MEGA_16K |
             DEVICES_MEGA_32K |
             DEVICES_MEGA_48K |
             DEVICE_AVR_D_SERIES)
