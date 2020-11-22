@@ -7,6 +7,7 @@ import argparse
 import re
 import logging
 
+from io import StringIO
 from device.device import Device
 from updi.nvm import UpdiNvmProgrammer
 """
@@ -72,6 +73,8 @@ def _main():
                         help="Reset")
     parser.add_argument("-i", "--info", action="store_true",
                         help="Info")
+    parser.add_argument("-x", "--integratedHex", action="store_true", 
+                        help="Intel HEX file that include fuses definition.")
     parser.add_argument("-fs", "--fuses", action="append", nargs="*",
                         help="Fuse to set (syntax: fuse_nr:0xvalue)")
     parser.add_argument("-fr", "--readfuses", action="store_true",
@@ -113,14 +116,76 @@ def _main():
     nvm.leave_progmode()
 
 
+def _GetFusesFromHexLine(lFuses):
+    FusesString = []
+    NumOfBytes = int(lFuses[1:3], 16)
+    FFuses = lFuses[9:-2]
+    Crc = lFuses[:-2]
+    if len(FFuses) == NumOfBytes * 2:
+        # ok, seem good
+        i = 0
+        while i < NumOfBytes:
+            bPos = i*2
+            fFuse = '%d:0x%s' % (i, FFuses[bPos:bPos+2])
+            FusesString.append(fFuse)
+            i = i+1
+    return FusesString
+
+
+def _SplitHexFile(filein):
+    FileHex = StringIO()
+    FusesString = []
+    fhex = open(filein, 'r').read().split('\n')
+    GetFuses = 0
+    for lhex in fhex:
+        # search records of tyoe 0x04
+        # records are at position7,8
+        recordId = lhex[7:9]
+        if recordId == '04':
+            # found an address record. Get the address:
+            AddressBase = lhex[9:13]
+            if AddressBase == '0082':
+                # found the fuses string
+                GetFuses = 1
+        elif GetFuses == 1:
+            FusesString = _GetFusesFromHexLine(lhex)
+            GetFuses = 0
+        else:
+            FileHex.write('%s\n' % lhex)
+    FileHex.seek(0)
+
+    return FileHex, FusesString
+
+
 def _process(nvm, args):
     if args.erase:
         try:
             nvm.chip_erase()
         except:
             return False
-    if args.fuses is not None:
-        for fslist in args.fuses:
+    FileHex = None
+    FusesString = None
+    if args.integratedHex:
+        if args.flash is not None:
+            filename = args.flash
+            FileHex, FusesString = _SplitHexFile(filename)
+            FusesString = [FusesString]
+        else:
+            print("Needs to specify FileIn with flag -f")
+            sys.exit(1)          
+
+    if args.flash is not None:
+        if FileHex is None:
+            FileHex = args.flash
+        ret = _flash_file(nvm, FileHex)
+        if args.integratedHex is None:
+            return ret
+
+    if FusesString is None:
+        FusesString = args.fuses
+    if FusesString is not None:
+        print(FusesString)
+        for fslist in FusesString:
             for fsarg in fslist:
                 if not re.match("^[0-9]+:0x[0-9a-fA-F]+$", fsarg):
                     print("Bad fuses format {}. Expected fuse_nr:0xvalue".format(fsarg))
@@ -130,11 +195,6 @@ def _process(nvm, args):
                 value = int(lst[1], 16)
                 if not _set_fuse(nvm, fusenum, value):
                     return False
-    if args.flash is not None:
-        return _flash_file(nvm, args.flash)
-    if args.readfuses:
-        if not _read_fuses(nvm):
-            return False
     return True
 
 
