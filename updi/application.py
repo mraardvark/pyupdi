@@ -6,6 +6,7 @@ import logging
 import updi.constants as constants
 from updi.link import UpdiDatalink
 from updi.timeout import Timeout
+import time
 
 
 class UpdiApplication(object):
@@ -22,6 +23,7 @@ class UpdiApplication(object):
         self.write_nvm = self.write_nvm_v0
         self.chip_erase = self.chip_erase_v0
         self.write_fuse = self.write_fuse_v0
+        self.write_locks = self.write_locks_v0
 
     def device_info(self):
         """
@@ -44,6 +46,7 @@ class UpdiApplication(object):
             self.write_nvm = self.write_nvm_v1
             self.chip_erase = self.chip_erase_v1
             self.write_fuse = self.write_fuse_v1
+            self.write_locks = self.write_locks_v1
             self.datalink.set_24bit_updi(True)
 
         ocd = sib[11:14].strip()
@@ -101,10 +104,14 @@ class UpdiApplication(object):
         self.datalink.key(constants.UPDI_KEY_64, constants.UPDI_KEY_CHIPERASE)
 
         # Check key status
+        print("Getting Key Status")
+        self.logger.info("Getting Key Status")
         key_status = self.datalink.ldcs(constants.UPDI_ASI_KEY_STATUS)
+        print("Key status = 0x{0:02X}".format(key_status))
         self.logger.info("Key status = 0x{0:02X}".format(key_status))
 
-        if not key_status & (1 << constants.UPDI_ASI_KEY_STATUS_CHIPERASE):
+
+        if not (key_status & (1 << constants.UPDI_ASI_KEY_STATUS_CHIPERASE)):
             raise Exception("Key not accepted")
 
         # Insert NVMProg key as well
@@ -153,12 +160,17 @@ class UpdiApplication(object):
         self.reset(apply_reset=False)
 
         # Wait for NVMPROG flag
+        print("Wait 60 secs for NVMPROG")
+        Now = time.time()
+        Timeout = 0
         while True:
-            self.logger.info("Wait for NVMPROG")
+            self.logger.info("Wait 60 secs for NVMPROG")
             sys_status = self.datalink.ldcs(constants.UPDI_ASI_SYS_STATUS)
             if sys_status & (1 << constants.UPDI_ASI_SYS_STATUS_NVMPROG):
                 break
-
+            if time.time() > (Now + 60):
+                Timeout = 1
+                break
             # TODO - add timeout
         
         if not self.in_prog_mode():
@@ -434,6 +446,43 @@ class UpdiApplication(object):
             DA fuses are EEPROM-based
         """
         return self.write_eeprom_v1(fusenum, value)
+
+    def write_locks_v0(self, locknum, value):
+        """
+            Writes one fuse value
+        """
+        # Must be in prog mode
+        if not self.in_prog_mode():
+            raise Exception("Enter progmode first!")
+
+        if not self.wait_flash_ready():
+            raise Exception("Flash not ready for fuse setting")
+
+        lockbit_data = value
+        lockbit_address = self.device.lockbit_address + locknum
+
+        address = self.device.nvmctrl_address + constants.UPDI_NVMCTRL_ADDRL
+        data = [lockbit_address & 0xff]
+        self.write_data(address, data)
+
+        address = self.device.nvmctrl_address + constants.UPDI_NVMCTRL_ADDRH
+        data = [lockbit_address >> 8]
+        self.write_data(address, data)
+
+        address = self.device.nvmctrl_address + constants.UPDI_NVMCTRL_DATAL
+        self.write_data(address, lockbit_data)
+
+        address = self.device.nvmctrl_address + constants.UPDI_NVMCTRL_CTRLA
+        data = [constants.UPDI_V0_NVMCTRL_CTRLA_WRITE_FUSE]
+
+        self.write_data(address, data)
+
+    def write_locks_v1(self, locknum, value):
+        """
+            Writes one fuse value
+            DA fuses are EEPROM-based
+        """
+        return self.write_eeprom_v1(locknum, value)
 
     def read_data(self, address, size):
         """

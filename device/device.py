@@ -25,6 +25,7 @@ DEFAULT_NVMCTRL_ADDRESS = 0x1000
 DEFAULT_SIGROW_ADDRESS = 0x1100
 DEFAULT_FUSES_ADDRESS = 0x1280
 DEFAULT_USERROW_ADDRESS = 0x1300
+DEFAULT_LOCKBIT_ADDRESS = 0x128a
 
 class Device(object):  # pylint: disable=too-few-public-methods
     """
@@ -37,6 +38,7 @@ class Device(object):  # pylint: disable=too-few-public-methods
         self.nvmctrl_address = DEFAULT_NVMCTRL_ADDRESS
         self.sigrow_address = DEFAULT_SIGROW_ADDRESS
         self.fuses_address = DEFAULT_FUSES_ADDRESS
+        self.lockbit_address = DEFAULT_LOCKBIT_ADDRESS
         self.userrow_address = DEFAULT_USERROW_ADDRESS
 
         if device_name in DEVICE_AVR_D_SERIES:

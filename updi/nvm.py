@@ -133,6 +133,33 @@ class UpdiNvmProgrammer(object):
 
         return self.application.write_fuse(fusenum, fuse_data)
 
+    def read_locks(self, locsnum):
+        """
+            Reads one fuse value
+        """
+        # Must be in prog mode
+        if not self.progmode:
+            raise Exception("Enter progmode first!")
+
+        address = self.device.fuses_address + locsnum
+        data = self.application.datalink.ld(address)
+        return data
+
+    def write_locks(self, locksnum, value):
+        """
+            Writes one fuse value
+        """
+        # Must be in prog mode
+        if not self.progmode:
+            raise Exception("Enter progmode first!")
+
+        if not self.application.wait_flash_ready():
+            raise Exception("Flash not ready for fuse setting")
+
+        locks_data = [value]
+
+        return self.application.write_locks(locksnum, locks_data)
+
     def pad_data(self, data, blocksize, character=0xFF):
         """
             Pads data so that there are full pages
