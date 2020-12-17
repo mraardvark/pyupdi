@@ -7,6 +7,7 @@ import argparse
 import re
 import logging
 
+from io import StringIO
 from device.device import Device
 from updi.nvm import UpdiNvmProgrammer
 """
@@ -55,6 +56,7 @@ pyupdi is a Python utility for programming AVR devices with UPDI interface
 
 
 def _main():
+    ExecuteLeave = 1
     if sys.version_info[0] < 3:
         print("WARNING: for best results use Python3")
 
@@ -72,6 +74,10 @@ def _main():
                         help="Reset")
     parser.add_argument("-i", "--info", action="store_true",
                         help="Info")
+    parser.add_argument("-x", "--integratedHex", action="store_true", 
+                        help="Intel HEX file that include fuses definition.")
+    parser.add_argument("-l", "--lockbits", action="append", nargs="*",
+                        help="LockBits to set (syntax: lockbyte_nr:0xvalue)")
     parser.add_argument("-fs", "--fuses", action="append", nargs="*",
                         help="Fuse to set (syntax: fuse_nr:0xvalue)")
     parser.add_argument("-fr", "--readfuses", action="store_true",
@@ -106,11 +112,79 @@ def _main():
 
         print("Device info: {0:s}".format(str(nvm.get_device_info())))
 
-        if not _process(nvm, args):
+        if _process(nvm, args) == 0:
             print("Error during processing")
+        else:
+            ExecuteLeave = 0
 
     # Reset only needs this.
-    nvm.leave_progmode()
+    if ExecuteLeave:
+        nvm.leave_progmode()
+
+
+def _GetLockBitFromHexLine(lLock):
+    LockString = []
+    NumOfBytes = int(lLock[1:3], 16)
+    FLocks = lLock[9:-2]
+    Crc = lLock[:-2]
+    if len(FLocks) == NumOfBytes * 2:
+        # ok, seem good
+        i = 0
+        while i < NumOfBytes:
+            bPos = i*2
+            lLock = '%d:0x%s' % (i, FLocks[bPos:bPos+2])
+            LockString.append(lLock)
+            i = i+1
+    return LockString
+
+
+def _GetFusesFromHexLine(lFuses):
+    FusesString = []
+    NumOfBytes = int(lFuses[1:3], 16)
+    FFuses = lFuses[9:-2]
+    Crc = lFuses[:-2]
+    if len(FFuses) == NumOfBytes * 2:
+        # ok, seem good
+        i = 0
+        while i < NumOfBytes:
+            bPos = i*2
+            fFuse = '%d:0x%s' % (i, FFuses[bPos:bPos+2])
+            FusesString.append(fFuse)
+            i = i+1
+    return FusesString
+
+
+def _SplitHexFile(filein):
+    FileHex = StringIO()
+    FusesString = []
+    LockBitString = []
+    fhex = open(filein, 'r').read().split('\n')
+    GetFuses = 0
+    GetLockBit = 0
+    for lhex in fhex:
+        # search records of tyoe 0x04
+        # records are at position7,8
+        recordId = lhex[7:9]
+        if recordId == '04':
+            # found an address record. Get the address:
+            AddressBase = lhex[9:13]
+            if AddressBase == '0082':
+                # found the fuses string
+                GetFuses = 1
+            elif AddressBase == '0083':
+                # found lockbit string
+                GetLockBit = 1
+        elif GetFuses == 1:
+            FusesString = _GetFusesFromHexLine(lhex)
+            GetFuses = 0
+        elif GetLockBit == 1:
+            LockBitString = _GetLockBitFromHexLine(lhex)
+            GetLockBit = 0
+        else:
+            FileHex.write('%s\n' % lhex)
+    FileHex.seek(0)
+
+    return FileHex, FusesString, LockBitString
 
 
 def _process(nvm, args):
@@ -119,8 +193,34 @@ def _process(nvm, args):
             nvm.chip_erase()
         except:
             return False
-    if args.fuses is not None:
-        for fslist in args.fuses:
+    FileHex = None
+    FusesString = None
+    LockString = None
+    if args.integratedHex:
+        if args.flash is not None:
+            filename = args.flash
+            FileHex, FusesString, LockString = _SplitHexFile(filename)
+            FusesString = [FusesString]
+            LockString = [LockString]
+        else:
+            print("Needs to specify FileIn with flag -f")
+            sys.exit(1)          
+
+    if args.flash is not None:
+        if FileHex is None:
+            FileHex = args.flash
+        ret = _flash_file(nvm, FileHex)
+        if args.integratedHex is None:
+            if ret == True:
+                return 1
+            else:
+                return 0
+
+    if FusesString is None:
+        FusesString = args.fuses
+    if FusesString is not None:
+        print(FusesString)
+        for fslist in FusesString:
             for fsarg in fslist:
                 if not re.match("^[0-9]+:0x[0-9a-fA-F]+$", fsarg):
                     print("Bad fuses format {}. Expected fuse_nr:0xvalue".format(fsarg))
@@ -129,13 +229,24 @@ def _process(nvm, args):
                 fusenum = int(lst[0])
                 value = int(lst[1], 16)
                 if not _set_fuse(nvm, fusenum, value):
-                    return False
-    if args.flash is not None:
-        return _flash_file(nvm, args.flash)
-    if args.readfuses:
-        if not _read_fuses(nvm):
-            return False
-    return True
+                    return 0
+    if LockString is None:
+        LockString = args.lockbits
+    if LockString is not None:
+        print(LockString)
+        for fslist in LockString:
+            for fsarg in fslist:
+                if not re.match("^[0-9]+:0x[0-9a-fA-F]+$", fsarg):
+                    print("Bad fuses format {}. Expected fuse_nr:0xvalue".format(fsarg))
+                    continue
+                lst = fsarg.split(":0x")
+                fusenum = int(lst[0])
+                value = int(lst[1], 16)
+                if not _set_locks(nvm, fusenum, value):
+                    return 0
+                else:
+                    return 2
+    return 1
 
 
 def _flash_file(nvm, filename):
@@ -167,6 +278,26 @@ def _set_fuse(nvm, fusenum, value):
         print("Verify error for fuse {0}, expected 0x{1:02X} read 0x{2:02X}".format(fusenum, value, actual_val))
     else:
         print("Fuse {0} set to 0x{1:02X} successfully".format(fusenum, value))
+    return ret
+
+def _set_locks(nvm, locksnum, value):
+    ret = 0
+    actual_val = nvm.read_locks(locksnum)
+    print("LockBits {0}: Actual Val: 0x{1:02X}".format(locksnum, actual_val))
+    nvm.write_locks(locksnum, value)
+    # now exit program mode
+    # check if the lock is programmed exiting and entring programm mode
+    nvm.leave_progmode()
+    try:
+        nvm.enter_progmode()
+    except:
+        print("Device is locked.")
+        ret = 1
+#    ret = actual_val == value
+#    if not ret:
+#        print("Verify error for LockBits {0}, expected 0x{1:02X} read 0x{2:02X}".format(locksnum, value, actual_val))
+#    else:
+#        print("LockBits {0} set to 0x{1:02X} successfully".format(locksnum, value))
     return ret
 
 
