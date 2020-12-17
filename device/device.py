@@ -38,6 +38,10 @@ class Device(object):  # pylint: disable=too-few-public-methods
         self.sigrow_address = DEFAULT_SIGROW_ADDRESS
         self.fuses_address = DEFAULT_FUSES_ADDRESS
         self.userrow_address = DEFAULT_USERROW_ADDRESS
+        
+        # Remove at* prefix if present
+        if(device_name.startswith("at")):
+            device_name = device_name[2:]
 
         if device_name in DEVICE_AVR_D_SERIES:
             self.fuses_address = 0x1050
@@ -93,14 +97,35 @@ class Device(object):  # pylint: disable=too-few-public-methods
             Query for device support list
             :return: list of supported devices
         """
+        
+        # add at* prefix to targets (e.g tiny202 -> attiny202)
+        DEVICES_ATTINY_2K  = set(["at" + s for s in DEVICES_TINY_2K])
+        DEVICES_ATTINY_4K  = set(["at" + s for s in DEVICES_TINY_4K])
+        DEVICES_ATTINY_8K  = set(["at" + s for s in DEVICES_TINY_8K])
+        DEVICES_ATTINY_16K = set(["at" + s for s in DEVICES_TINY_16K])
+        DEVICES_ATTINY_32K = set(["at" + s for s in DEVICES_TINY_32K])
+        DEVICES_ATMEGA_8K  = set(["at" + s for s in DEVICES_MEGA_8K])
+        DEVICES_ATMEGA_16K = set(["at" + s for s in DEVICES_MEGA_16K])
+        DEVICES_ATMEGA_32K = set(["at" + s for s in DEVICES_MEGA_32K])
+        DEVICES_ATMEGA_48K = set(["at" + s for s in DEVICES_MEGA_48K])
+        
         return sorted(
-            DEVICES_TINY_2K |
-            DEVICES_TINY_4K |
-            DEVICES_TINY_8K |
-            DEVICES_TINY_16K |
-            DEVICES_TINY_32K |
-            DEVICES_MEGA_8K |
-            DEVICES_MEGA_16K |
-            DEVICES_MEGA_32K |
-            DEVICES_MEGA_48K |
+            DEVICES_TINY_2K    |
+            DEVICES_ATTINY_2K  |
+            DEVICES_TINY_4K    |
+            DEVICES_ATTINY_4K  |
+            DEVICES_TINY_8K    |
+            DEVICES_ATTINY_8K  |
+            DEVICES_TINY_16K   |
+            DEVICES_ATTINY_16K |
+            DEVICES_TINY_32K   |
+            DEVICES_ATTINY_32K |
+            DEVICES_MEGA_8K    |
+            DEVICES_ATMEGA_8K  |
+            DEVICES_MEGA_16K   |
+            DEVICES_ATMEGA_16K |
+            DEVICES_MEGA_32K   |
+            DEVICES_ATMEGA_32K |
+            DEVICES_MEGA_48K   |
+            DEVICES_ATMEGA_48K |
             DEVICE_AVR_D_SERIES)
