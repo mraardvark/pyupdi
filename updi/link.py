@@ -17,6 +17,7 @@ class UpdiDatalink(object):
         self.logger = logging.getLogger("link")
 
         # Create a UPDI physical connection
+        self.use24bit=False
         self.updi_phy = UpdiPhysical(comport, baud)
 
         # Initialise
@@ -29,6 +30,10 @@ class UpdiDatalink(object):
             self.init()
             if not self.check():
                 raise Exception("UPDI initialisation failed")
+
+    def set_24bit_updi(self, mode):
+        self.logger.info("Using 24-bit updi")
+        self.use24bit = mode
 
     def init(self):
         """
@@ -63,37 +68,52 @@ class UpdiDatalink(object):
         """
             Store a value to Control/Status space
         """
-        self.logger.info("STCS to 0x{0:02X}".format(address))
+        self.logger.info("STCS 0x{0:02X} to 0x{1:02X}".format(value, address))
         self.updi_phy.send([constants.UPDI_PHY_SYNC, constants.UPDI_STCS | (address & 0x0F), value])
 
     def ld(self, address):
         """
-            Load a single byte direct from a 16-bit address
+            Load a single byte direct from a 16/24-bit address
         """
-        self.logger.info("LD from 0x{0:04X}".format(address))
-        self.updi_phy.send(
-            [constants.UPDI_PHY_SYNC, constants.UPDI_LDS | constants.UPDI_ADDRESS_16 | constants.UPDI_DATA_8,
-             address & 0xFF, (address >> 8) & 0xFF])
+        self.logger.info("LD from 0x{0:06X}".format(address))
+        if self.use24bit:
+            self.updi_phy.send(
+                [constants.UPDI_PHY_SYNC, constants.UPDI_LDS | constants.UPDI_ADDRESS_24 | constants.UPDI_DATA_8,
+                 address & 0xFF, (address >> 8) & 0xFF, (address >> 16) & 0xFF])
+        else:
+            self.updi_phy.send(
+                [constants.UPDI_PHY_SYNC, constants.UPDI_LDS | constants.UPDI_ADDRESS_16 | constants.UPDI_DATA_8,
+                 address & 0xFF, (address >> 8) & 0xFF])
         return self.updi_phy.receive(1)[0]
 
     def ld16(self, address):
         """
-            Load a 16-bit word directly from a 16-bit address
+            Load a 16-bit word directly from a 16/24-bit address
         """
-        self.logger.info("LD from 0x{0:04X}".format(address))
-        self.updi_phy.send(
-            [constants.UPDI_PHY_SYNC, constants.UPDI_LDS | constants.UPDI_ADDRESS_16 | constants.UPDI_DATA_16,
-             address & 0xFF, (address >> 8) & 0xFF])
+        self.logger.info("LD from 0x{0:06X}".format(address))
+        if self.use24bit:
+            self.updi_phy.send(
+                [constants.UPDI_PHY_SYNC, constants.UPDI_LDS | constants.UPDI_ADDRESS_24 | constants.UPDI_DATA_16,
+                address & 0xFF, (address >> 8) & 0xFF, (address >> 16) & 0xFF])
+        else:
+            self.updi_phy.send(
+                [constants.UPDI_PHY_SYNC, constants.UPDI_LDS | constants.UPDI_ADDRESS_16 | constants.UPDI_DATA_16,
+                address & 0xFF, (address >> 8) & 0xFF])
         return self.updi_phy.receive(2)
 
     def st(self, address, value):
         """
-            Store a single byte value directly to a 16-bit address
+            Store a single byte value directly to a 16/24-bit address
         """
-        self.logger.info("ST to 0x{0:04X}".format(address))
-        self.updi_phy.send(
-            [constants.UPDI_PHY_SYNC, constants.UPDI_STS | constants.UPDI_ADDRESS_16 | constants.UPDI_DATA_8,
-             address & 0xFF, (address >> 8) & 0xFF])
+        self.logger.info("ST to 0x{0:06X}".format(address))
+        if self.use24bit:
+            self.updi_phy.send(
+                [constants.UPDI_PHY_SYNC, constants.UPDI_STS | constants.UPDI_ADDRESS_24 | constants.UPDI_DATA_8,
+                 address & 0xFF, (address >> 8) & 0xFF, (address >> 16) & 0xFF])
+        else:
+            self.updi_phy.send(
+                [constants.UPDI_PHY_SYNC, constants.UPDI_STS | constants.UPDI_ADDRESS_16 | constants.UPDI_DATA_8,
+                 address & 0xFF, (address >> 8) & 0xFF])
         response = self.updi_phy.receive(1)
         if len(response) != 1 or response[0] != constants.UPDI_PHY_ACK:
             raise Exception("Error with st")
@@ -105,12 +125,17 @@ class UpdiDatalink(object):
 
     def st16(self, address, value):
         """
-            Store a 16-bit word value directly to a 16-bit address
+            Store a 16-bit word value directly to a 16/24-bit address
         """
-        self.logger.info("ST to 0x{0:04X}".format(address))
-        self.updi_phy.send(
-            [constants.UPDI_PHY_SYNC, constants.UPDI_STS | constants.UPDI_ADDRESS_16 | constants.UPDI_DATA_16,
-             address & 0xFF, (address >> 8) & 0xFF])
+        self.logger.info("ST to 0x{0:06X}".format(address))
+        if self.use24bit:
+            self.updi_phy.send(
+                [constants.UPDI_PHY_SYNC, constants.UPDI_STS | constants.UPDI_ADDRESS_24 | constants.UPDI_DATA_16,
+                 address & 0xFF, (address >> 8) & 0xFF, (address >> 16) & 0xFF])
+        else:
+            self.updi_phy.send(
+                [constants.UPDI_PHY_SYNC, constants.UPDI_STS | constants.UPDI_ADDRESS_16 | constants.UPDI_DATA_16,
+                 address & 0xFF, (address >> 8) & 0xFF])
         response = self.updi_phy.receive(1)
         if len(response) != 1 or response[0] != constants.UPDI_PHY_ACK:
             raise Exception("Error with st")
@@ -143,9 +168,14 @@ class UpdiDatalink(object):
             Set the pointer location
         """
         self.logger.info("ST to ptr")
-        self.updi_phy.send(
-            [constants.UPDI_PHY_SYNC, constants.UPDI_ST | constants.UPDI_PTR_ADDRESS | constants.UPDI_DATA_16,
-             address & 0xFF, (address >> 8) & 0xFF])
+        if self.use24bit:
+            self.updi_phy.send(
+                [constants.UPDI_PHY_SYNC, constants.UPDI_ST | constants.UPDI_PTR_ADDRESS | constants.UPDI_DATA_24,
+                 address & 0xFF, (address >> 8) & 0xFF, (address >> 16) & 0xFF])
+        else:
+            self.updi_phy.send(
+                [constants.UPDI_PHY_SYNC, constants.UPDI_ST | constants.UPDI_PTR_ADDRESS | constants.UPDI_DATA_16,
+                address & 0xFF, (address >> 8) & 0xFF])
         response = self.updi_phy.receive(1)
         if len(response) != 1 or response[0] != constants.UPDI_PHY_ACK:
             raise Exception("Error with st_ptr")
@@ -193,10 +223,12 @@ class UpdiDatalink(object):
         """
             Store a value to the repeat counter
         """
+        if (repeats - 1) > constants.UPDI_MAX_REPEAT_SIZE:
+            raise Exception("Invalid repeat count!")
         self.logger.info("Repeat {0:d}".format(repeats))
         repeats -= 1
-        self.updi_phy.send([constants.UPDI_PHY_SYNC, constants.UPDI_REPEAT | constants.UPDI_REPEAT_WORD,
-                            repeats & 0xFF, (repeats >> 8) & 0xFF])
+        self.updi_phy.send([constants.UPDI_PHY_SYNC, constants.UPDI_REPEAT | constants.UPDI_REPEAT_BYTE,
+                            repeats & 0xFF])
 
     def read_sib(self):
         """
