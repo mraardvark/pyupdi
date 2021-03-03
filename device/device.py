@@ -72,10 +72,16 @@ class Device(object):  # pylint: disable=too-few-public-methods
             self.flash_start = 0x8000
             self.flash_size = 32 * 1024
             self.flash_pagesize = 128
+            self.eeprom_start = 0x1400
+            self.eeprom_size = 256
+            self.eeprom_pagesize = 64
         elif device_name in DEVICES_ATTINY_16K:
             self.flash_start = 0x8000
             self.flash_size = 16 * 1024
             self.flash_pagesize = 64
+            self.eeprom_start = 0x1400
+            self.eeprom_size = 256
+            self.eeprom_pagesize = 32
         elif device_name in DEVICES_ATTINY_8K:
             self.flash_start = 0x8000
             self.flash_size = 8 * 1024

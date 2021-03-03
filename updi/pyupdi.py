@@ -76,13 +76,15 @@ def _main():
                         help="Fuse to set (syntax: fuse_nr:0xvalue)")
     parser.add_argument("-fr", "--readfuses", action="store_true",
                         help="Read out the fuse-bits")
+    parser.add_argument("-fe", "--eeprom",
+                        help="Intel HEX file to write to EEPROM.")
     parser.add_argument("-v", "--verbose", action="store_true",
                         help="Set verbose mode")
 
     args = parser.parse_args(sys.argv[1:])
 
-    if not any( (args.fuses, args.flash, args.erase, args.reset, args.readfuses, args.info) ):
-        print("No action (erase, flash, reset, fuses or info)")
+    if not any( (args.fuses, args.flash, args.erase, args.reset, args.readfuses, args.info, args.eeprom) ):
+        print("No action (erase, flash, eeprom, reset, fuses or info)")
         sys.exit(0)
 
     if args.verbose:
@@ -132,6 +134,8 @@ def _process(nvm, args):
                     return False
     if args.flash is not None:
         return _flash_file(nvm, args.flash)
+    if args.eeprom is not None:
+        return _write_eeprom(nvm, args.eeprom)
     if args.readfuses:
         if not _read_fuses(nvm):
             return False
@@ -139,7 +143,7 @@ def _process(nvm, args):
 
 
 def _flash_file(nvm, filename):
-    data, start_address = nvm.load_ihex(filename)
+    data, start_address = nvm.load_ihex_flash(filename)
 
     fail = False
 
@@ -176,6 +180,27 @@ def _read_fuses(nvm):
         fuseval=nvm.read_fuse(fusenum)
         print("{0}:0x{1:02X}".format(fusenum,fuseval))
     return True
+
+
+def _write_eeprom(nvm, filename):
+    data, start_address = nvm.load_ihex_eeprom(filename)
+
+    fail = False
+
+    nvm.eeprom_erase()
+    nvm.write_eeprom(start_address, data)
+
+    # Read out again
+    readback = nvm.read_eeprom(nvm.device.eeprom_start, len(data))
+    for i, _ in enumerate(data):
+        if data[i] != readback[i]:
+            print("Verify error at location 0x{0:04X}: expected 0x{1:02X} read 0x{2:02X} ".format(i, data[i],
+                                                                                                  readback[i]))
+            fail = True
+
+    if not fail:
+        print("EEPROM write successful")
+    return not fail
 
 
 if __name__ == "__main__":

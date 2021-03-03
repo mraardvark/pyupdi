@@ -65,45 +65,72 @@ class UpdiNvmProgrammer(object):
 
         return self.application.chip_erase()
 
+    def eeprom_erase(self):
+        if not self.progmode:
+            raise Exception("Enter progmode first!")
+
+        return self.application.eeprom_erase()
+
     def read_flash(self, address, size):
         """
             Reads from flash
         """
+        return self._read_mem(address, size, self.device.flash_pagesize, True)
+
+    def read_eeprom(self, address, size):
+        """
+            Reads from EEPROM
+        """
+        return self._read_mem(address, size, self.device.eeprom_pagesize, False)
+
+    def _read_mem(self, address, size, pagesize, use_word_access):
         # Must be in prog mode here
         if not self.progmode:
             raise Exception("Enter progmode first!")
 
         # Find the number of pages
-        pages = size // self.device.flash_pagesize
-        if size % self.device.flash_pagesize:
+        pages = size // pagesize
+        if size % pagesize:
             raise Exception("Only full page aligned flash supported.")
 
         data = []
         # Read out page-wise for convenience
         for _ in range(pages):
             self.logger.info("Reading page at 0x{0:04X}".format(address))
-            data += (self.application.read_data_words(address, self.device.flash_pagesize >> 1))
-            address += self.device.flash_pagesize
+            if use_word_access:
+                data += (self.application.read_data_words(address, pagesize >> 1))
+            else:
+                data += (self.application.read_data(address, pagesize))
+            address += pagesize
         return data
 
     def write_flash(self, address, data):
         """
             Writes to flash
         """
+        return self._write_mem(address, data, self.device.flash_pagesize, use_word_access=True)
+
+    def write_eeprom(self, address, data):
+        """
+            Writes to EEPROM
+        """
+        return self._write_mem(address, data, self.device.eeprom_pagesize, use_word_access=False)
+
+    def _write_mem(self, address, data, pagesize, use_word_access):
         # Must be in prog mode
         if not self.progmode:
             raise Exception("Enter progmode first!")
 
         # Pad to full page
-        data = self.pad_data(data, self.device.flash_pagesize)
+        data = self.pad_data(data, pagesize)
 
         # Divide up into pages
-        pages = self.page_data(data, self.device.flash_pagesize)
+        pages = self.page_data(data, pagesize)
 
         # Program each page
         for page in pages:
             self.logger.info("Writing page at 0x{0:04X}".format(address))
-            self.application.write_nvm(address, page)
+            self.application.write_nvm(address, page, use_word_access=use_word_access)
             address += len(page)
 
     def read_fuse(self, fusenum):
@@ -156,7 +183,13 @@ class UpdiNvmProgrammer(object):
             data = data[size:]
         return result
 
-    def load_ihex(self, filename):
+    def load_ihex_flash(self, filename):
+        return self._load_ihex(filename, self.device.flash_size, self.device.flash_start)
+
+    def load_ihex_eeprom(self, filename):
+        return self._load_ihex(filename, self.device.eeprom_size, self.device.eeprom_start)
+
+    def _load_ihex(self, filename, mem_size, mem_start):
         """
             Load from intel hex format
         """
@@ -166,16 +199,21 @@ class UpdiNvmProgrammer(object):
         ih = IntelHex()
         ih.loadhex(filename)
         data = ih.tobinarray()
+
         start_address = ih.minaddr()
+        if start_address is None:
+            # This happens if an empty file is loaded.
+            start_address = 0
+
         self.logger.info("Loaded {0:d} bytes from ihex starting at address 0x{1:04X}".format(len(data), start_address))
 
         # Size check
-        if len(data) > self.device.flash_size:
+        if len(data) > mem_size:
             raise Exception("ihex too large for flash")
 
         # Offset to actual flash start
-        if start_address < self.device.flash_start:
-            self.logger.info("Adjusting flash offset to address 0x{:04X}".format(self.device.flash_start))
-            start_address += self.device.flash_start
+        if start_address < mem_start:
+            self.logger.info("Adjusting offset to address 0x{:04X}".format(mem_start))
+            start_address += mem_start
 
         return data, start_address

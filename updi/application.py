@@ -269,6 +269,22 @@ class UpdiApplication(object):
 
         return True
 
+    def eeprom_erase(self):
+        self.logger.info("EEPROM erase using NVM CTRL")
+
+        # Wait until NVM CTRL is ready to erase
+        if not self.wait_flash_ready():
+            raise Exception("Timeout waiting for EEPROM ready before erase ")
+
+        # Erase
+        self.execute_nvm_command(constants.UPDI_V0_NVMCTRL_CTRLA_ERASE_EEPROM)
+
+        # And wait for it
+        if not self.wait_flash_ready():
+            raise Exception("Timeout waiting for EEPROM ready after erase")
+
+        return True
+
     def write_data_words(self, address, data):
         """
             Writes a number of words to memory
