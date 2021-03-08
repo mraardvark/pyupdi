@@ -17,7 +17,7 @@ pyupdi is a Python utility for programming AVR devices with UPDI interface
  +---------------------+ |                       | +--------------------+
  | Serial port         +-+                       +-+  AVR device        |
  |                     |      +----------+         |                    |
- |                  TX +------+   4k7    +---------+ UPDI               |
+ |                  TX +------+   1k     +---------+ UPDI               |
  |                     |      +----------+    |    |                    |
  |                     |                      |    |                    |
  |                  RX +----------------------+    |                    |
