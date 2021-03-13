@@ -151,7 +151,7 @@ def _flash_file(nvm, filename):
     nvm.write_flash(start_address, data)
 
     # Read out again
-    readback = nvm.read_flash(nvm.device.flash_start, len(data))
+    readback = nvm.read_flash(start_address, len(data))
     for i, _ in enumerate(data):
         if data[i] != readback[i]:
             print("Verify error at location 0x{0:04X}: expected 0x{1:02X} read 0x{2:02X} ".format(i, data[i],
