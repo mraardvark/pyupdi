@@ -1,6 +1,16 @@
 # pyupdi
 Python UPDI driver for programming "new" tinyAVR and megaAVR devices
 
+## NOTICE!
+pyupdi functionality has been incorporated as a part of pymcuprog:
+- install from pypi: https://pypi.org/project/pymcuprog/
+- browse the source: https://github.com/microchip-pic-avr-tools/pymcuprog/tree/main/pymcuprog/serialupdi
+
+pymcuprog can be installed as a CLI, or used as a library, and new devices will be added continuously.
+
+If you have a Microchip debugger (eg: Atmel-ICE, PICkit4) you can also use pymcuprog with AVR UPDI devices.
+
+## pyupdi
 pyupdi is a Python utility for programming AVR devices with UPDI interface
   using a standard TTL serial port.
 
