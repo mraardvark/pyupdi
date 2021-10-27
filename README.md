@@ -1,7 +1,9 @@
 # pyupdi
 Python UPDI driver for programming "new" tinyAVR and megaAVR devices
 
-## NOTICE!
+## DEPRECATION NOTICE!
+This repository is no longer maintained.  Use the serialupdi feature of pymcuprog.
+
 pyupdi functionality has been incorporated as a part of pymcuprog:
 - install from pypi: https://pypi.org/project/pymcuprog/
 - browse the source: https://github.com/microchip-pic-avr-tools/pymcuprog/tree/main/pymcuprog/serialupdi
